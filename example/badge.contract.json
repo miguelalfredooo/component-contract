@@ -1,0 +1,49 @@
+{
+  "$schema": "../contract.schema.json",
+  "id": "studio.badge",
+  "name": "Badge",
+  "version": "1.0.0",
+  "status": "draft",
+  "description": "A small status or category label. Not a control — if it can be pressed, reach for Button instead.",
+  "archetype": "label",
+  "system": {
+    "name": "alfredo-studio core",
+    "authority": "CLAUDE.md",
+    "tokenFiles": ["app/globals.css", "public/shared/tokens-core.css"]
+  },
+  "semantics": { "element": "span" },
+  "props": [
+    {
+      "name": "variant",
+      "description": "Which signal it carries. `destructive` is reserved for genuine failure, never emphasis.",
+      "type": { "enum": ["default", "secondary", "destructive", "outline", "ghost", "link"] },
+      "default": "default",
+      "bindings": { "code": { "prop": "variant" } }
+    },
+    {
+      "name": "asChild",
+      "description": "Render onto the child element instead, so a Badge can be a link without nesting one.",
+      "type": "boolean",
+      "default": false,
+      "bindings": { "code": { "prop": "asChild" } }
+    }
+  ],
+  "states": ["hover", "focus-visible"],
+  "anatomy": {
+    "root": {
+      "description": "One pill. The radius is full, not a token step — a badge is a different shape from a button on purpose.",
+      "element": "span",
+      "tokens": { "outline-color": "var(--ring)" }
+    }
+  },
+  "a11y": { "focusVisible": true, "contrast": "AA" },
+  "bindings": {
+    "code": {
+      "anchors": { "sourcePath": "components/ui/badge.tsx", "export": "Badge", "idiom": "cva" }
+    }
+  },
+  "gaps": [
+    { "what": "No size axis.", "why": "One size keeps badges consistent down a list. A badge that needs to be bigger is usually a Button or a heading." },
+    { "what": "No success or warning variant.", "why": "Same token decision as Button — the palette carries one accent and one destructive." }
+  ]
+}

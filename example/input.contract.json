@@ -1,0 +1,45 @@
+{
+  "$schema": "../contract.schema.json",
+  "id": "studio.input",
+  "name": "Input",
+  "version": "1.0.0",
+  "status": "draft",
+  "description": "A single-line text field. One appearance, no variants — every input in the studio looks the same on purpose.",
+  "archetype": "field",
+  "system": {
+    "name": "alfredo-studio core",
+    "authority": "CLAUDE.md",
+    "tokenFiles": ["app/globals.css", "public/shared/tokens-core.css"]
+  },
+  "semantics": { "element": "input" },
+  "props": [
+    {
+      "name": "type",
+      "description": "The native input type. Passed straight through — the component adds no behavior of its own.",
+      "type": "text",
+      "bindings": { "code": { "prop": "type" } }
+    }
+  ],
+  "states": ["focus-visible", "disabled"],
+  "anatomy": {
+    "root": {
+      "description": "One field. Height and radius are fixed; the ring is the only thing that changes.",
+      "element": "input",
+      "tokens": {
+        "border-color": "var(--input)",
+        "border-radius": "var(--radius-md)"
+      },
+      "states": { "focus-visible": { "outline-color": "var(--ring)" } }
+    }
+  },
+  "a11y": { "focusVisible": true, "minHitArea": 36, "contrast": "AA" },
+  "bindings": {
+    "code": {
+      "anchors": { "sourcePath": "components/ui/input.tsx", "export": "Input", "idiom": "plain" }
+    }
+  },
+  "gaps": [
+    { "what": "No size or variant axis.", "why": "One field height keeps forms aligned. A different height is a form-layout decision, not a component one." },
+    { "what": "No built-in label, hint or error text.", "why": "Those are a Field's job — an input that owns its own label cannot be laid out beside another one." }
+  ]
+}

@@ -1,0 +1,61 @@
+{
+  "$schema": "../contract.schema.json",
+  "id": "studio.button",
+  "name": "Button",
+  "version": "1.0.0",
+  "status": "draft",
+  "description": "The studio's action control. shadcn primitive, cva-variant, used everywhere a person triggers something. Composition layers wrap it; nothing re-implements it.",
+  "archetype": "button",
+  "system": {
+    "name": "alfredo-studio core",
+    "authority": "CLAUDE.md",
+    "tokenFiles": ["app/globals.css", "public/shared/tokens-core.css"]
+  },
+  "semantics": { "element": "button" },
+  "props": [
+    {
+      "name": "variant",
+      "description": "Visual weight. `surface` is the opaque one for floating over imagery; translucent variants disappear there.",
+      "type": { "enum": ["default", "outline", "secondary", "surface", "ghost", "destructive", "link"] },
+      "default": "default",
+      "bindings": { "code": { "prop": "variant" } }
+    },
+    {
+      "name": "size",
+      "description": "Control height tier. The `icon-*` sizes are square.",
+      "type": { "enum": ["default", "xs", "sm", "lg", "xl", "xxl", "icon", "icon-xs", "icon-sm", "icon-lg"] },
+      "default": "default",
+      "bindings": { "code": { "prop": "size" } }
+    },
+    {
+      "name": "asChild",
+      "description": "Render the styling onto the child element instead (Radix Slot).",
+      "type": "boolean",
+      "default": false,
+      "bindings": { "code": { "prop": "asChild" } }
+    }
+  ],
+  "states": ["hover", "focus-visible", "active", "disabled"],
+  "anatomy": {
+    "root": {
+      "description": "One box; icon and label are children, gap comes from the size tier.",
+      "tokens": { "border-radius": "var(--radius-md)" },
+      "states": {
+        "focus-visible": { "outline-color": "var(--ring)" }
+      }
+    }
+  },
+  "a11y": { "focusVisible": true, "contrast": "AA" },
+  "bindings": {
+    "code": {
+      "anchors": {
+        "sourcePath": "components/ui/button.tsx",
+        "export": "Button",
+        "idiom": "cva"
+      }
+    }
+  },
+  "gaps": [
+    { "what": "No `success` or warning variant.", "why": "The palette carries one accent and one destructive; a third signal color is a token decision, not a component decision." }
+  ]
+}

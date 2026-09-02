@@ -1,0 +1,373 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://claude-skills.local/component-contract/v1/contract.schema.json",
+  "version": "1.0.0",
+  "title": "Component Contract (code-bindings subset)",
+  "description": "A deliberate SUBSET of the Southleft ds-contracts schema, restricted to what a checker can verify against source with no Figma and no browser. Field names are kept byte-identical to Southleft's so a contract written here is readable by their tooling; the figma binding object is permitted and NEVER checked. The schema's own version (here) moves separately from any contract's version, per NC-7: implementing a contract depends on both.",
+  "type": "object",
+  "required": [
+    "id",
+    "name",
+    "version",
+    "description",
+    "semantics",
+    "props",
+    "anatomy",
+    "bindings"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(\\.[a-z0-9-]+)+$",
+      "description": "Namespaced id, e.g. ds.button."
+    },
+    "name": {
+      "type": "string",
+      "description": "The exported symbol as written in code."
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "status": {
+      "enum": [
+        "draft",
+        "review",
+        "stable",
+        "deprecated"
+      ]
+    },
+    "description": {
+      "type": "string",
+      "minLength": 20,
+      "description": "What the component is FOR. A partner reads this to decide whether to reach for it."
+    },
+    "archetype": {
+      "type": "string",
+      "description": "Free label grouping like-behaving components: button, field, surface, layout."
+    },
+    "system": {
+      "type": "object",
+      "description": "WHICH design system governs this component. A repo with more than one surface must answer this before anything else is checkable.",
+      "required": [
+        "name",
+        "tokenFiles"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "authority": {
+          "type": "string",
+          "description": "Path to the doc that governs this surface."
+        },
+        "tokenFiles": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          },
+          "description": "Repo-relative paths. Every token named in this contract must resolve in one of these."
+        }
+      }
+    },
+    "semantics": {
+      "type": "object",
+      "required": [
+        "element"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "element": {
+          "type": "string",
+          "description": "The HTML element actually rendered at the root."
+        },
+        "role": {
+          "type": "string"
+        },
+        "elementByProp": {
+          "type": "object",
+          "required": [
+            "prop",
+            "map"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "prop": {
+              "type": "string"
+            },
+            "map": {
+              "type": "object"
+            }
+          }
+        }
+      }
+    },
+    "props": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "type",
+          "bindings"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "type": {
+            "oneOf": [
+              {
+                "enum": [
+                  "boolean",
+                  "text",
+                  "number",
+                  "node"
+                ]
+              },
+              {
+                "type": "object",
+                "required": [
+                  "enum"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "enum": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          "default": {},
+          "required": {
+            "type": "boolean"
+          },
+          "bindings": {
+            "type": "object",
+            "required": [
+              "code"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "code": {
+                "type": "object",
+                "required": [
+                  "prop"
+                ],
+                "properties": {
+                  "prop": {
+                    "type": "string"
+                  }
+                }
+              },
+              "figma": {
+                "type": "object",
+                "description": "Recorded, never checked. Forward compatibility with Southleft tooling only."
+              }
+            }
+          }
+        }
+      }
+    },
+    "states": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "hover",
+          "focus-visible",
+          "active",
+          "disabled",
+          "selected",
+          "expanded"
+        ]
+      }
+    },
+    "anatomy": {
+      "type": "object",
+      "description": "The parts of the component and the TOKENS each part reads. Values are token references, never literals.",
+      "required": [
+        "root"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "root": {
+          "$ref": "#/definitions/part"
+        }
+      }
+    },
+    "a11y": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "focusVisible": {
+          "type": "boolean"
+        },
+        "minHitArea": {
+          "type": "number",
+          "description": "CSS px."
+        },
+        "contrast": {
+          "enum": [
+            "AA",
+            "AAA"
+          ]
+        }
+      }
+    },
+    "bindings": {
+      "type": "object",
+      "required": [
+        "code"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "type": "object",
+          "required": [
+            "anchors"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "anchors": {
+              "type": "object",
+              "required": [
+                "sourcePath",
+                "export"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "sourcePath": {
+                  "type": "string",
+                  "description": "Repo-relative path to the component source."
+                },
+                "stylePath": {
+                  "type": "string",
+                  "description": "Repo-relative path to its stylesheet, when styling lives outside the component file."
+                },
+                "export": {
+                  "type": "string"
+                },
+                "idiom": {
+                  "enum": [
+                    "cva",
+                    "css-module",
+                    "plain",
+                    "inline"
+                  ],
+                  "description": "How this component declares its variants. Decides how the checker reads it. `plain` is a component with no variant system at all \u2014 the option checks do not apply, everything else does."
+                }
+              }
+            }
+          }
+        },
+        "figma": {
+          "type": "object",
+          "description": "Recorded, never checked."
+        }
+      }
+    },
+    "gaps": {
+      "type": "array",
+      "description": "What this component deliberately CANNOT do yet. Written down so a partner is refused honestly instead of inventing.",
+      "items": {
+        "type": "object",
+        "required": [
+          "what",
+          "why"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "what": {
+            "type": "string"
+          },
+          "why": {
+            "type": "string"
+          },
+          "proposal": {
+            "type": "string",
+            "description": "Path to a .proposal.json, if one has been raised."
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "part": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "selector": {
+          "type": "string",
+          "description": "css-module idiom: the class this part is styled by, without the module prefix."
+        },
+        "element": {
+          "type": "string",
+          "description": "The HTML element this part renders. Lets the checker dismiss rules that could never match it (NC-4: a check that fires on correct code is broken)."
+        },
+        "scope": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Ancestor class names this part is always rendered inside. Lets the checker rule on a descendant selector instead of guessing: a rival scoped to a declared ancestor definitely reaches this part; one scoped elsewhere cannot be proven without a DOM, and is reported as unproven rather than as drift (NC-4)."
+        },
+        "attrs": {
+          "type": "object"
+        },
+        "tokens": {
+          "type": "object",
+          "description": "CSS property -> token reference. NEVER a literal."
+        },
+        "states": {
+          "type": "object",
+          "description": "state name -> { property: token reference }"
+        },
+        "slot": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "acceptsMode": {
+              "enum": [
+                "open",
+                "restricted"
+              ]
+            },
+            "accepts": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "parts": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/part"
+          }
+        }
+      }
+    }
+  }
+}

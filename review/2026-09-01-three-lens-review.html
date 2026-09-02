@@ -1,0 +1,647 @@
+<title>The Contract on Trial</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400..700;1,6..72,400..600&family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&display=swap">
+<style>
+:root{
+  --ground:#F3F4F2; --surface:#FFFFFF; --ink:#20261F; --muted:#5C6660;
+  --accent:#0E5F52; --hairline:#DDE2DD; --inset:#EBEEEA;
+  --pass:#1E7A4F; --fail:#BE3D2E; --warn:#A2731C;
+  --pass-bg:#E3F0E8; --fail-bg:#F6E4E0; --warn-bg:#F3EBD9;
+  --vd:#7A4E86; --pd:#17677D; --en:#3F5C8F;
+  --vd-bg:#EFE6F2; --pd-bg:#E0EEF3; --en-bg:#E4EAF5;
+  --term-bg:#1D211F; --term-ink:#D9DFD9;
+  /* Categorical trio for the lenses. Validated in both modes with the dataviz
+     validator: lightness band, chroma floor, CVD separation, normal-vision
+     floor and contrast all PASS. Never eyeballed. */
+  --cat-vd:#B85400; --cat-pd:#009B8E; --cat-en:#6D3FD1;
+  --track:#E7EAE6;
+  color-scheme:light dark;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --cat-vd:#CE7226; --cat-pd:#0FA593; --cat-en:#8D6FE0; --track:#333A36;
+    --ground:#1B1F1D; --surface:#232826; --ink:#ECEFEA; --muted:#9AA69E;
+    --accent:#4FB89B; --hairline:rgba(255,255,255,.10); --inset:#2A302D;
+    --pass:#5BC189; --fail:#E67A63; --warn:#D9A83F;
+    --pass-bg:rgba(91,193,137,.13); --fail-bg:rgba(230,122,99,.13); --warn-bg:rgba(217,168,63,.13);
+    --vd:#B78EC2; --pd:#63AEC4; --en:#8FA9D6;
+    --vd-bg:rgba(183,142,194,.13); --pd-bg:rgba(99,174,196,.13); --en-bg:rgba(143,169,214,.13);
+    --term-bg:#161917; --term-ink:#CBD3CB;
+  }
+}
+:root[data-theme="dark"]{
+  --cat-vd:#CE7226; --cat-pd:#0FA593; --cat-en:#8D6FE0; --track:#333A36;
+    --ground:#1B1F1D; --surface:#232826; --ink:#ECEFEA; --muted:#9AA69E;
+  --accent:#4FB89B; --hairline:rgba(255,255,255,.10); --inset:#2A302D;
+  --pass:#5BC189; --fail:#E67A63; --warn:#D9A83F;
+  --pass-bg:rgba(91,193,137,.13); --fail-bg:rgba(230,122,99,.13); --warn-bg:rgba(217,168,63,.13);
+  --vd:#B78EC2; --pd:#63AEC4; --en:#8FA9D6;
+  --vd-bg:rgba(183,142,194,.13); --pd-bg:rgba(99,174,196,.13); --en-bg:rgba(143,169,214,.13);
+  --term-bg:#161917; --term-ink:#CBD3CB;
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font:16px/1.65 "DM Sans",system-ui,sans-serif;margin:0;padding:0 20px 80px}
+.page{max-width:880px;margin:0 auto}
+header{padding:52px 0 30px;border-bottom:1px solid var(--hairline)}
+.eyebrow{font:500 11px/1 "JetBrains Mono",monospace;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+h1{font:600 46px/1.08 "Newsreader",Georgia,serif;letter-spacing:-.015em;margin:14px 0 12px;text-wrap:balance}
+.verdict{font:400 20px/1.5 "Newsreader",Georgia,serif;font-style:italic;color:var(--muted);max-width:62ch;margin:0}
+.verdict strong{color:var(--ink);font-style:normal}
+h2{font:600 27px/1.2 "Newsreader",Georgia,serif;letter-spacing:-.01em;margin:56px 0 6px;text-wrap:balance}
+h3{font:700 14px/1.3 "DM Sans",sans-serif;margin:28px 0 8px}
+.kick{color:var(--muted);margin:0 0 20px;max-width:66ch}
+p{max-width:68ch}
+code,.mono{font-family:"JetBrains Mono",monospace}
+code{font-size:.86em;background:var(--inset);padding:.1em .35em;border-radius:4px}
+.scores{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:var(--hairline);border:1px solid var(--hairline);border-radius:10px;overflow:hidden;margin:30px 0 0}
+.score{background:var(--surface);padding:16px 18px}
+.score b{display:block;font:700 30px/1 "DM Sans",sans-serif;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.score span{font:500 11px/1.4 "JetBrains Mono",monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.score.good b{color:var(--pass)} .score.bad b{color:var(--fail)} .score.mid b{color:var(--warn)}
+.term{background:var(--term-bg);color:var(--term-ink);border-radius:12px;padding:20px 0;margin:20px 0;overflow-x:auto}
+.term pre{margin:0;padding:0 22px;font:12.5px/1.75 "JetBrains Mono",monospace;min-width:640px}
+.t-cmd{color:#8FB8A8}
+.t-fail{color:#E67A63;font-weight:700}
+.t-pass{color:#5BC189;font-weight:700}
+.t-dim{color:#7C857C}
+.t-true{color:#5BC189;font-weight:500}
+.t-false{color:#D9A83F;font-weight:500}
+.chip{display:inline-block;font:700 10.5px/1 "JetBrains Mono",monospace;letter-spacing:.07em;padding:4px 8px;border-radius:99px;white-space:nowrap}
+.c-vd{color:var(--vd);background:var(--vd-bg)} .c-pd{color:var(--pd);background:var(--pd-bg)} .c-en{color:var(--en);background:var(--en-bg)}
+.c-str{color:var(--pass);background:var(--pass-bg)} .c-gap{color:var(--warn);background:var(--warn-bg)} .c-crit{color:var(--fail);background:var(--fail-bg)}
+.tblwrap{overflow-x:auto;border:1px solid var(--hairline);border-radius:12px;background:var(--surface);margin:22px 0}
+table{border-collapse:collapse;width:100%;min-width:760px;font-size:14px}
+th{font:700 10.5px/1.3 "JetBrains Mono",monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);text-align:left;padding:12px 16px;border-bottom:1px solid var(--hairline)}
+td{padding:13px 16px;border-bottom:1px solid var(--hairline);vertical-align:top;line-height:1.55}
+tr:last-child td{border-bottom:none}
+td.id{font:500 12px/1.4 "JetBrains Mono",monospace;color:var(--muted);white-space:nowrap}
+td .fh{font-weight:700}
+td .fd{color:var(--muted);display:block;margin-top:2px}
+td.rec{color:var(--ink)}
+.dive{background:var(--surface);border:1px solid var(--hairline);border-radius:12px;padding:24px 26px;margin:18px 0}
+.dive h3{margin-top:0}
+.spec{display:flex;gap:14px;flex-wrap:wrap;margin:16px 0 6px}
+.specbox{background:var(--inset);border-radius:10px;padding:14px 18px;flex:1 1 220px}
+.specbox .sel{font:500 13px/1.4 "JetBrains Mono",monospace}
+.specbox .num{font:700 26px/1.2 "JetBrains Mono",monospace;letter-spacing:.04em;margin:6px 0 2px}
+.specbox .lbl{font:500 10.5px/1.4 "JetBrains Mono",monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.specbox.wins{outline:2px solid var(--fail);outline-offset:-2px}
+.specbox.wins .num{color:var(--fail)}
+.ex{background:var(--surface);border:1px solid var(--hairline);border-radius:12px;margin:18px 0;overflow:hidden}
+.ex-head{display:flex;align-items:baseline;gap:12px;padding:16px 22px 0}
+.ex-head h3{margin:0}
+.ex-body{padding:6px 22px 20px}
+.ex pre{background:var(--inset);border-radius:8px;padding:16px 18px;overflow-x:auto;font:12.5px/1.7 "JetBrains Mono",monospace;margin:12px 0 4px}
+.ex .why{font-size:14px;color:var(--muted);max-width:66ch;margin:10px 0 0}
+.ex .why b{color:var(--ink)}
+.dialogue{display:grid;gap:10px;margin:14px 0 4px}
+.say{border-radius:10px;padding:12px 16px;font-size:14px;max-width:56ch}
+.say .who{font:700 10.5px/1 "JetBrains Mono",monospace;letter-spacing:.08em;text-transform:uppercase;display:block;margin-bottom:5px;color:var(--muted)}
+.say.partner{background:var(--inset)}
+.say.agent{background:var(--pass-bg);justify-self:end}
+.say.agent .who{color:var(--pass)}
+.ledger{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--hairline);border:1px solid var(--hairline);border-radius:12px;overflow:hidden;margin:22px 0}
+.ledger>div{background:var(--surface);padding:20px 24px}
+.ledger h3{margin-top:0}
+.ledger ul{margin:8px 0 0;padding-left:18px;font-size:14px;line-height:1.8}
+.ledger .done li::marker{color:var(--pass)}
+.ledger .todo li::marker{color:var(--warn)}
+@media(max-width:640px){h1{font-size:34px}.ledger{grid-template-columns:1fr}}
+footer{margin-top:60px;padding-top:18px;border-top:1px solid var(--hairline);font:400 12.5px/1.7 "JetBrains Mono",monospace;color:var(--muted)}
+
+/* primer */
+.flow{display:grid;grid-template-columns:1fr auto 1.15fr auto 1fr;gap:10px;align-items:stretch;margin:24px 0 10px}
+.fbox{background:var(--surface);border:1px solid var(--hairline);border-radius:10px;padding:14px 16px;text-align:center}
+.fbox .fb-t{font:700 12px/1.3 "DM Sans",sans-serif;letter-spacing:.02em}
+.fbox .fb-s{font:400 12px/1.5 "DM Sans",sans-serif;color:var(--muted);margin-top:3px}
+.fbox.mid{border-color:var(--accent);box-shadow:0 1px 0 var(--accent) inset,0 -1px 0 var(--accent) inset}
+.fbox.mid .fb-t{color:var(--accent)}
+.fbox.mid .fb-file{font:500 11px/1.4 "JetBrains Mono",monospace;color:var(--accent);margin-top:6px}
+.farrow{align-self:center;color:var(--muted);font:400 18px/1 "DM Sans",sans-serif}
+.fcheck{display:flex;align-items:center;gap:12px;background:var(--inset);border-radius:10px;padding:12px 16px;margin:0 0 6px;font-size:13.5px;color:var(--muted)}
+.fcheck b{font:700 10.5px/1 "JetBrains Mono",monospace;letter-spacing:.08em;color:var(--ink);white-space:nowrap}
+.anatomy{border:1px solid var(--hairline);border-radius:12px;background:var(--surface);margin:20px 0;overflow:hidden}
+.arow{display:grid;grid-template-columns:200px 1fr;border-bottom:1px solid var(--hairline)}
+.arow:last-child{border-bottom:none}
+.arow .af{font:500 12.5px/1.5 "JetBrains Mono",monospace;padding:12px 16px;background:var(--inset)}
+.arow .aa{padding:12px 18px;font-size:14px;line-height:1.55}
+.arow .aa em{color:var(--muted)}
+.great{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:20px 0}
+.gcard{background:var(--surface);border:1px solid var(--hairline);border-radius:12px;padding:18px 20px}
+.gcard h3{margin:0 0 6px;font-size:14px}
+.gcard p{margin:0;font-size:14px;color:var(--muted);line-height:1.6}
+.onerule{border-left:3px solid var(--accent);background:var(--surface);border-radius:0 12px 12px 0;padding:18px 22px;margin:22px 0}
+.onerule .or-k{font:700 10.5px/1 "JetBrains Mono",monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.onerule p{font:400 19px/1.5 "Newsreader",Georgia,serif;margin:8px 0 0;max-width:60ch}
+@media(max-width:680px){.flow{grid-template-columns:1fr}.farrow{transform:rotate(90deg);justify-self:center}.great{grid-template-columns:1fr}.arow{grid-template-columns:1fr}.arow .af{padding-bottom:2px}.arow .aa{padding-top:4px}}
+
+.nc{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:20px 0}
+.nccard{background:var(--surface);border:1px solid var(--hairline);border-radius:12px;padding:16px 20px}
+.nccard:last-child{grid-column:1/-1}
+.nccard .nck{font:700 10.5px/1 "JetBrains Mono",monospace;letter-spacing:.08em;color:var(--accent)}
+.nccard h3{margin:6px 0 5px;font-size:14px}
+.nccard p{margin:0;font-size:14px;color:var(--muted);line-height:1.6}
+.nccard p q{font-style:italic;color:var(--ink);quotes:"\201C" "\201D"}
+.c-nc{color:var(--accent);background:var(--inset)}
+@media(max-width:680px){.nc{grid-template-columns:1fr}}
+
+.wex{background:var(--surface);border:1px solid var(--hairline);border-radius:12px;margin:20px 0;overflow:hidden}
+.wex-step{display:grid;grid-template-columns:38px 1fr;border-bottom:1px solid var(--hairline)}
+.wex-step:last-child{border-bottom:none}
+.wex-n{background:var(--inset);display:flex;align-items:flex-start;justify-content:center;padding-top:19px;font:700 12px/1 "JetBrains Mono",monospace;color:var(--muted)}
+.wex-b{padding:16px 20px 18px}
+.wex-b h3{margin:0 0 6px}
+.wex-b p{margin:0 0 8px;font-size:14px;color:var(--muted)}
+.wex-b p:last-child{margin-bottom:0}
+.wex-b p b{color:var(--ink)}
+.wex-b pre{background:var(--inset);border-radius:8px;padding:13px 16px;overflow-x:auto;font:12.5px/1.65 "JetBrains Mono",monospace;margin:8px 0}
+.owners{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 0 4px}
+.owner{border-radius:10px;padding:13px 16px;background:var(--inset)}
+.owner .ow-w{font:500 10.5px/1.4 "JetBrains Mono",monospace;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.owner .ow-v{font:700 22px/1.2 "JetBrains Mono",monospace;margin:5px 0 3px}
+.owner .ow-n{font-size:12.5px;line-height:1.5;color:var(--muted)}
+.owner.loses{opacity:.62}
+.owner.loses .ow-v{color:var(--muted);text-decoration:line-through}
+.owner.wins{background:var(--fail-bg)}
+.owner.wins .ow-v{color:var(--fail)}
+.btnsim{display:flex;align-items:flex-end;gap:14px;margin:10px 0 4px}
+.btnsim .bs{display:flex;flex-direction:column;align-items:center;gap:6px}
+.btnsim .bx{background:var(--accent);color:#fff;border-radius:6px;display:flex;align-items:center;justify-content:center;font:500 12px/1 "DM Sans",sans-serif;padding:0 14px;white-space:nowrap}
+.btnsim .bl{font:500 10.5px/1.3 "JetBrains Mono",monospace;color:var(--muted);text-align:center}
+.bought{width:100%;border-collapse:collapse;font-size:13.5px;margin:10px 0 2px;min-width:0}
+.bought th{font:700 10px/1.3 "JetBrains Mono",monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);text-align:left;padding:8px 12px 8px 0;border-bottom:1px solid var(--hairline)}
+.bought td{padding:9px 12px 9px 0;border-bottom:1px solid var(--hairline);vertical-align:top;line-height:1.5}
+.bought tr:last-child td{border-bottom:none}
+.bought td.was{color:var(--muted)}
+.bought td.now{color:var(--ink);font-weight:500}
+@media(max-width:640px){.owners{grid-template-columns:1fr}.wex-step{grid-template-columns:1fr}.wex-n{padding:10px 0 0;justify-content:flex-start;padding-left:20px}}
+
+/* at a glance */
+.glance{border:1px solid var(--hairline);border-radius:14px;background:var(--surface);margin:26px 0 0;overflow:hidden}
+.glance-h{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:15px 22px 0}
+.glance-h h2{margin:0;font-size:17px;font-family:"DM Sans",sans-serif;font-weight:700;letter-spacing:.01em}
+.glance-h span{font:500 10.5px/1 "JetBrains Mono",monospace;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.kpi{display:grid;grid-template-columns:repeat(auto-fit,minmax(126px,1fr));gap:1px;background:var(--hairline);margin-top:15px;border-top:1px solid var(--hairline)}
+.kpi>div{background:var(--surface);padding:14px 18px 15px}
+.kpi .k-v{font:700 27px/1 "DM Sans",sans-serif;font-variant-numeric:tabular-nums;letter-spacing:-.02em;display:flex;align-items:baseline;gap:5px}
+.kpi .k-v s{font:500 15px/1 "DM Sans",sans-serif;text-decoration:line-through;color:var(--muted);opacity:.8}
+.kpi .k-v i{font:500 14px/1 "DM Sans",sans-serif;font-style:normal;color:var(--muted)}
+.kpi .k-l{font:500 10.5px/1.45 "JetBrains Mono",monospace;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-top:7px}
+.kpi .good{color:var(--pass)} .kpi .warn{color:var(--warn)}
+.meter{height:4px;border-radius:99px;background:var(--track);margin-top:9px;overflow:hidden}
+.meter i{display:block;height:100%;border-radius:99px;background:var(--warn)}
+.charts{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--hairline);border-top:1px solid var(--hairline)}
+.charts>figure{background:var(--surface);margin:0;padding:17px 22px 19px;min-width:0}
+.charts figcaption{font:700 12.5px/1.4 "DM Sans",sans-serif;margin-bottom:3px}
+.charts .sub{font-size:12.5px;line-height:1.5;color:var(--muted);margin:0 0 13px;max-width:44ch}
+.charts svg{display:block;width:100%;height:auto;overflow:visible}
+.lg{display:flex;gap:14px;flex-wrap:wrap;margin-top:11px;font:500 11px/1 "JetBrains Mono",monospace;color:var(--muted)}
+.lg b{display:inline-flex;align-items:center;gap:5px;font-weight:500}
+.lg i{width:9px;height:9px;border-radius:2px;display:inline-block}
+@media(max-width:680px){.charts{grid-template-columns:1fr}}
+
+.cs{border:1px solid var(--hairline);border-radius:14px;background:var(--surface);overflow:hidden;margin:22px 0}
+.cs-lede{padding:20px 24px 4px}
+.cs-lede p{margin:0 0 10px;font-size:14.5px;line-height:1.6}
+.cs-lede p:last-child{margin-bottom:14px}
+.pv{--r:14px;--acc:#0066cc;--acc-fg:#fff;--bg:#f5f3f0;--fg:#242526;--card:#fff;
+    --bd:rgba(0,0,0,.1);--sec:rgba(0,0,0,.06);--des:oklch(0.6368 0.2078 25.3313);
+    background:var(--bg);color:var(--fg);border-top:1px solid var(--hairline);
+    border-bottom:1px solid var(--hairline);padding:20px 24px 22px}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .pv{
+    --acc:#41d9d9;--acc-fg:#000;--bg:#0a0f1a;--fg:#e0e0e0;--card:oklch(0.2077 0.0398 265.7549);
+    --bd:rgba(255,255,255,.08);--sec:rgba(255,255,255,.06);--des:oklch(0.70 0.22 25)}}
+:root[data-theme="dark"] .pv{--acc:#41d9d9;--acc-fg:#000;--bg:#0a0f1a;--fg:#e0e0e0;
+    --card:oklch(0.2077 0.0398 265.7549);--bd:rgba(255,255,255,.08);--sec:rgba(255,255,255,.06);
+    --des:oklch(0.70 0.22 25)}
+.pv-h{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:14px}
+.pv-h b{font:700 12px/1.3 "DM Sans",sans-serif}
+.pv-h span{font:500 10px/1.3 "JetBrains Mono",monospace;letter-spacing:.07em;text-transform:uppercase;opacity:.6}
+.pv-row{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:13px}
+.pv-lab{font:500 10px/1.3 "JetBrains Mono",monospace;letter-spacing:.06em;text-transform:uppercase;opacity:.55;width:62px;flex:0 0 62px}
+.b{border:1px solid transparent;border-radius:var(--r);display:inline-flex;align-items:center;
+   justify-content:center;font:500 13px/1 "DM Sans",sans-serif;height:32px;padding:0 10px;white-space:nowrap}
+.b.s-sm{height:28px;font-size:12.8px}
+.b.s-lg{height:36px;padding:0 12px}
+.b.s-xl{height:44px;padding:0 16px;font-size:14px}
+.b.s-icon{width:32px;padding:0}
+.b.v-default{background:var(--acc);color:var(--acc-fg)}
+.b.v-outline{border-color:var(--bd);background:var(--bg);color:var(--fg)}
+.b.v-secondary{background:var(--sec);color:var(--fg)}
+.b.v-surface{border-color:var(--bd);background:var(--card);color:var(--fg);box-shadow:0 1px 2px rgba(0,0,0,.06)}
+.b.v-ghost{color:var(--fg)}
+.b.v-destructive{background:color-mix(in oklch,var(--des),transparent 90%);color:var(--des)}
+.b.v-link{color:var(--acc);text-decoration:underline;text-underline-offset:4px;padding:0 2px}
+.b.foc{outline:3px solid color-mix(in oklch,var(--acc),transparent 50%);outline-offset:1px;border-color:var(--acc)}
+.b.dis{opacity:.5}
+.pv-note{font:400 12px/1.55 "DM Sans",sans-serif;opacity:.62;margin:14px 0 0;max-width:62ch}
+.pv-note code{background:transparent;padding:0;font-size:11.5px}
+.loop{display:grid;grid-template-columns:26px 1fr;column-gap:14px}
+.loop>.ln{grid-column:1;display:flex;flex-direction:column;align-items:center}
+.loop .dot{width:24px;height:24px;border-radius:50%;background:var(--accent);border:1px solid var(--accent);
+  display:flex;align-items:center;justify-content:center;font:700 10.5px/1 "JetBrains Mono",monospace;color:#fff;flex:0 0 auto}
+.loop .dot.end{background:var(--inset);border-color:var(--hairline);color:var(--muted);font-size:13px}
+.loop .bar{width:1px;flex:1;background:var(--hairline);margin:4px 0}
+.loop .st{grid-column:2;padding-bottom:20px;min-width:0}
+.loop .st h4{margin:2px 0 5px;font:700 13.5px/1.35 "DM Sans",sans-serif}
+.loop .st p{margin:0 0 7px;font-size:13.5px;line-height:1.6;color:var(--muted)}
+.loop .st p:last-child{margin-bottom:0}
+.loop .st p b{color:var(--ink)}
+.loop .st pre{background:var(--inset);border-radius:7px;padding:11px 14px;overflow-x:auto;
+  font:12px/1.6 "JetBrains Mono",monospace;margin:7px 0}
+.cs-close{padding:18px 24px 22px;border-top:1px solid var(--hairline);background:var(--inset)}
+.cs-close p{margin:0;font:400 15px/1.6 "Newsreader",Georgia,serif;max-width:62ch}
+.cs-close p b{font-family:"DM Sans",sans-serif;font-size:13.5px;font-weight:700}
+@media(max-width:600px){.pv-lab{width:100%;flex:1 0 100%}}
+</style>
+<div class="page">
+<header>
+  <div class="eyebrow">Skill review · component-contract · 2026-09-01 · run against alfredo-studio @ 3dcea80e · point-in-time, not a living doc</div>
+  <h1>The Contract on Trial</h1>
+  <p class="verdict">You asked for a skill that lets a partner prototype inside your visual vocabulary. Half of it exists — the contract file and its checker — so we put that half on trial against your live code before writing another line. <strong>The idea works, and the aim is off.</strong> It found two real bugs nobody knew about, and raised twenty-three alarms about code that is fine. A checker that cries wolf gets ignored, so the aim was sharpened during the review — <strong>the false alarms are now at zero and both real catches survived.</strong></p>
+</header>
+
+
+<section class="glance" aria-label="At a glance">
+  <div class="glance-h"><h2>At a glance</h2><span>component-contract · 2026-09-01</span></div>
+
+  <div class="kpi">
+    <div><div class="k-v good">2</div><div class="k-l">real bugs caught<br>in live code</div></div>
+    <div><div class="k-v good">0 <s>23</s></div><div class="k-l">false alarms<br>after the aim fix</div></div>
+    <div><div class="k-v good">10<i>/10</i></div><div class="k-l">sabotage tests<br>every one bit</div></div>
+    <div><div class="k-v good">6<i>/6</i></div><div class="k-l">skill parts built<div class="meter"><i style="width:100%;background:var(--pass)"></i></div></div></div>
+    <div><div class="k-v">15</div><div class="k-l">findings<br>8 closed, 7 logged</div></div>
+  </div>
+
+  <div class="charts">
+    <figure>
+      <figcaption>Signal and noise, before and after</figcaption>
+      <p class="sub">The two real catches survived the aim fix; the noise around them did not.</p>
+      <svg viewBox="0 0 260 132" role="img" aria-label="Before: 2 real catches and 23 false alarms. After: 2 real catches and 0 false alarms.">
+        <line x1="0" y1="96" x2="260" y2="96" stroke="var(--hairline)" stroke-width="1"/>
+        <text x="64" y="112" text-anchor="middle" font-size="11.5" font-family="DM Sans,sans-serif" fill="var(--ink)" font-weight="500">Before</text><text x="64" y="126" text-anchor="middle" font-size="10.5" font-family="JetBrains Mono,monospace" fill="var(--muted)">25 findings</text><rect x="38" y="-2.0" width="52" height="88.3" rx="4" fill="var(--fail)"/><text x="64" y="-8.0" text-anchor="middle" font-size="12" font-weight="700" font-family="JetBrains Mono,monospace" fill="var(--fail)">23</text><rect x="38" y="88.3" width="52" height="7.7" rx="4" fill="var(--pass)"/>
+        <text x="184" y="112" text-anchor="middle" font-size="11.5" font-family="DM Sans,sans-serif" fill="var(--ink)" font-weight="500">After</text><text x="184" y="126" text-anchor="middle" font-size="10.5" font-family="JetBrains Mono,monospace" fill="var(--muted)">2 findings</text><rect x="158" y="88.3" width="52" height="7.7" rx="4" fill="var(--pass)"/><text x="184" y="80.3" text-anchor="middle" font-size="12" font-weight="700" font-family="JetBrains Mono,monospace" fill="var(--pass)">0 false</text>
+      </svg>
+      <div class="lg"><b><i style="background:var(--pass)"></i>real</b><b><i style="background:var(--fail)"></i>false alarm</b></div>
+    </figure>
+
+    <figure>
+      <figcaption>Findings by lens, and what is closed</figcaption>
+      <p class="sub">Solid is fixed during this review; pale is still open.</p>
+      <svg viewBox="0 0 360 96" role="img" aria-label="Engineering 3 of 6 closed, Product 2 of 5 closed, Visual 1 of 4 closed."><text x="86" y="14" text-anchor="end" font-size="11.5" fill="var(--muted)" font-family="DM Sans,sans-serif">Engineering</text><rect x="96" y="0" width="232.0" height="18" rx="4" fill="var(--cat-en)" opacity=".28"/><rect x="96" y="0" width="116.0" height="18" rx="4" fill="var(--cat-en)"/><text x="336.0" y="13" font-size="11.5" font-family="JetBrains Mono,monospace" fill="var(--muted)">3/6</text><text x="86" y="46" text-anchor="end" font-size="11.5" fill="var(--muted)" font-family="DM Sans,sans-serif">Product</text><rect x="96" y="32" width="193.3" height="18" rx="4" fill="var(--cat-pd)" opacity=".28"/><rect x="96" y="32" width="77.3" height="18" rx="4" fill="var(--cat-pd)"/><text x="297.3" y="45" font-size="11.5" font-family="JetBrains Mono,monospace" fill="var(--muted)">2/5</text><text x="86" y="78" text-anchor="end" font-size="11.5" fill="var(--muted)" font-family="DM Sans,sans-serif">Visual</text><rect x="96" y="64" width="154.7" height="18" rx="4" fill="var(--cat-vd)" opacity=".28"/><rect x="96" y="64" width="38.7" height="18" rx="4" fill="var(--cat-vd)"/><text x="258.7" y="77" font-size="11.5" font-family="JetBrains Mono,monospace" fill="var(--muted)">1/4</text></svg>
+      <div class="lg"><b><i style="background:var(--cat-en)"></i>engineering</b><b><i style="background:var(--cat-pd)"></i>product</b><b><i style="background:var(--cat-vd)"></i>visual</b></div>
+    </figure>
+  </div>
+</section>
+
+<h2>First, the idea</h2>
+<p class="kick">You know the drift story — a component exists twice, once as the design you decided and once as the code that ships, and the two never quite stay the same. A contract is the way out: a third, small file that both copies answer to.</p>
+
+<div class="flow">
+  <div class="fbox"><div class="fb-t">Design intent</div><div class="fb-s">what you decided — options, tokens, behavior</div></div>
+  <div class="farrow">⇄</div>
+  <div class="fbox mid"><div class="fb-t">The contract</div><div class="fb-s">one plain-text file per component, everything labeled</div><div class="fb-file">button.contract.json</div></div>
+  <div class="farrow">⇄</div>
+  <div class="fbox"><div class="fb-t">Shipped code</div><div class="fb-s">what actually renders, in the repo</div></div>
+</div>
+<div class="fcheck"><b>THE CHECKER</b><span>compares the contract to the code and names the exact place they stopped agreeing — a check you run, not an opinion you form.</span></div>
+
+<p>The file is a form with boxes, not a paragraph. A paragraph has to be understood, and understanding varies; a form only has to match, and matching gives the same answer every time. That is the whole trick — in Nathan Curtis's words, <i>a description informs; a contract arbitrates.</i> Six boxes carry it:</p>
+
+<div class="anatomy">
+  <div class="arow"><div class="af">name + description</div><div class="aa">What this is, and when to reach for it. <em>The sentence a partner reads before choosing it.</em></div></div>
+  <div class="arow"><div class="af">system</div><div class="aa">Which design system governs it — this repo has four, and the wrong answer here makes every other box wrong.</div></div>
+  <div class="arow"><div class="af">props</div><div class="aa">What you may vary, and the exact options for each. <em>The fence: anything on the list is yours to use freely.</em></div></div>
+  <div class="arow"><div class="af">tokens</div><div class="aa">The named decisions it reads for color, radius, spacing — never a raw value. Change the token, and everything built on it moves together.</div></div>
+  <div class="arow"><div class="af">gaps</div><div class="aa">What it cannot do yet, and why. <em>The gate: a refusal you wrote in advance, so nobody has to improvise a no.</em></div></div>
+  <div class="arow"><div class="af">bindings</div><div class="aa">Where the real code lives, so the checker can find it and hold both sides to the same story.</div></div>
+</div>
+
+<p>What makes a contract great is not a matter of taste. Nathan Curtis — the system architect who coined components-as-data — names seven facets, and this skill adopts them as its principles. Every check and every recommendation below traces to one:</p>
+<div class="nc">
+  <div class="nccard"><span class="nck">NC-1</span><h3>Well-typed over loosely formed</h3><p>Every value has a legal shape — one choice from a fixed list, a yes/no, a number. A contract that accepts any text cannot reject <code>size: kind of large</code>.</p></div>
+  <div class="nccard"><span class="nck">NC-2</span><h3>Normalized over redundant</h3><p>Each decision is stated once. The moment it lives in two places the contract can disagree with itself, and <q>a self-contradicting artifact cannot arbitrate anything.</q></p></div>
+  <div class="nccard"><span class="nck">NC-3</span><h3>Independent over platform-biased</h3><p>No party owns it — not Figma, not React. <q>A definition biased to one party's point of view is testimony, not a contract.</q> Platform detail lives at the edge, in the bindings.</p></div>
+  <div class="nccard"><span class="nck">NC-4</span><h3>Verifiable over readable</h3><p>A machine can rule it right or wrong — validly formed, and precisely implemented. <q>Reading is review, not verification.</q></p></div>
+  <div class="nccard"><span class="nck">NC-5</span><h3>Deterministic over inferred</h3><p>Same input, same output, empty diff. <q>Deterministic compilation isn't the goal — it's evidence the contract is good.</q></p></div>
+  <div class="nccard"><span class="nck">NC-6</span><h3>Efficient to keep true</h3><p>The cost that matters is keeping it current, not writing it. <q>A rotted contract is worse than no contract at all, because people trust contracts.</q></p></div>
+  <div class="nccard"><span class="nck">NC-7</span><h3>Evolvable over simply flexible</h3><p>Strict does not mean static. <q>A contract that can't change dies, and a contract that changes without governance was never actually a contract.</q> Growth happens through reviewed proposals, and the schema is versioned separately from every contract written against it.</p></div>
+</div>
+<div class="onerule"><span class="or-k">The one rule</span><p>The copies never update each other directly. A change — a new option, a different color — goes into the contract first, gets reviewed there, and both sides follow. One source in the middle, and nobody crowned.</p></div>
+\n<h2>The evidence, before the opinions</h2>
+<p class="kick">Two contracts were written from your real components — the studio Button and the sketchbook landing CTA — then checked against the live repo. This is the checker's own output, marked up with which lines to trust.</p>
+<div class="term"><pre>
+<span class="t-cmd">$ node tools/check.mjs example/ --repo ~/Code/alfredo-studio</span>
+
+  <span class="t-fail">FAIL</span>  button.contract.json
+        ✗ [C3] `size` declares two defaults that disagree
+          <span class="t-dim">The variant table says `lg` (button.tsx:46); the function says `default` (:56).</span>
+          <span class="t-dim">The function wins, so the design-system default is dead code.</span>      <span class="t-true">← REAL — a live bug nobody had caught</span>
+
+  <span class="t-fail">FAIL</span>  sketchbook-cta.contract.json
+        ✗ [C8] `color` on `.btnPrimary` — `.page a` (line 95) outranks it
+          <span class="t-dim">`color: inherit` beats the contract's `var(--ground)`.</span>              <span class="t-true">← REAL — the black-on-black CTA that shipped</span>
+        ✗ [C8] `color` on `.btnPrimary` — `.heroTitle em` outranks it        <span class="t-false">← FALSE — an &lt;em&gt; can never be this link</span>
+        ✗ [C8] `background` — `.btnPrimary:hover` outranks it                <span class="t-false">← FALSE — hover is the same button in another state</span>
+          <span class="t-dim">… 20 more in the same shape …</span>
+        ✗ [C6] the contract says `a`, the code renders `div`                 <span class="t-false">← WRONG TARGET — it contracted a whole page</span>
+        ✗ [C5] `#b8559b` hardcoded in a governed property                    <span class="t-false">← HALF RIGHT — real value, unrelated rule</span>
+
+<span class="t-dim">2 contracts checked — 0 passing, 2 drifted.</span>  <span class="t-fail">exit 1</span>
+</pre></div>
+<p>Then the checker itself was tested the way this studio tests every guard: break the thing it protects on purpose, and watch it go red. Five sabotages, five correct reactions:</p>
+<div class="term"><pre>
+M1  contract promises a `success` variant the code lacks   <span class="t-pass">→ caught</span>
+M2  contract names `--radius-mdd`, which does not exist    <span class="t-pass">→ caught</span>
+M3  contract declares a `tone` prop the component lacks    <span class="t-pass">→ caught</span>
+M4  the double default is FIXED in a copy of the repo      <span class="t-pass">→ run turns green</span>
+M5  a change to description text only                      <span class="t-pass">→ verdict unchanged</span>
+</pre></div>
+
+
+<h2>Walk one component through it</h2>
+<p class="kick">A button — the component everyone thinks is too simple to need a contract, which is why it is the right one to show. Everything below is your real <code>components/ui/button.tsx</code>, and the finding had been shipping for months.</p>
+
+<div class="wex">
+  <div class="wex-step"><div class="wex-n">1</div><div class="wex-b">
+    <h3>The component, before anything</h3>
+    <p>A shadcn Button styled with <code>cva</code>. Seven variants, ten sizes — <b>seventy combinations</b>, all correct, in one 74-line file that two people had reviewed. Nobody had complained about it.</p>
+    <pre>defaultVariants: {
+  variant: "default",
+  size: "lg",                    <span class="t-dim">← the design system's stated default</span>
+}
+
+function Button({ variant = "default", size = "default", … }) {
+                                 <span class="t-dim">↑ the default that actually ships</span></pre>
+  </div></div>
+
+  <div class="wex-step"><div class="wex-n">2</div><div class="wex-b">
+    <h3>The contract</h3>
+    <p>Written <i>from</i> that file, not from what anyone wished it said. Under 60 lines, and every line is checkable.</p>
+    <pre>"props": [
+  { "name": "variant", "type": { "enum": [ …7 values… ] }, "default": "default" },
+  { "name": "size",    "type": { "enum": [ …10 values… ] }, "default": "default" }
+],
+"anatomy": { "root": { "tokens": { "border-radius": "var(--radius-md)" } } },
+"a11y": { "focusVisible": true, "contrast": "AA" },
+"gaps": [ { "what": "No success or warning variant.", "why": "…" } ]</pre>
+  </div></div>
+
+  <div class="wex-step"><div class="wex-n">3</div><div class="wex-b">
+    <h3>What the checker found</h3>
+    <p><code>size</code> is declared twice, in one file, with two different answers:</p>
+    <div class="owners">
+      <div class="owner loses"><div class="ow-w">the design-system layer</div><div class="ow-v">lg → 36px</div><div class="ow-n">Where a designer would look. Never applies — the value is threaded through, so this line is dead code.</div></div>
+      <div class="owner wins"><div class="ow-w">the function signature</div><div class="ow-v">default → 32px</div><div class="ow-n">Ordinary React plumbing. Wins every time. This is what your app actually renders.</div></div>
+    </div>
+    <div class="btnsim">
+      <div class="bs"><div class="bx" style="height:36px">Save</div><div class="bl">what the system<br>says it ships</div></div>
+      <div class="bs"><div class="bx" style="height:32px">Save</div><div class="bl">what it<br>actually ships</div></div>
+    </div>
+    <p>Every <code>&lt;Button&gt;Save&lt;/Button&gt;</code> in the app renders <b>32px tall, not 36</b>. The stated default has never once applied.</p>
+    <p>And nothing looks broken. Both values make a real button. It passes every test, renders in both themes, and reads as correct to anyone opening the file — because <b>the wrong line is the one that looks most authoritative</b>. A linter has no opinion, a type-checker is satisfied, and a review sees two sensible defaults with no reason to compare them.</p>
+    <p><b>A contract catches it because a contract can only hold one answer.</b> Asking “what is the default?” out loud is what turns two answers into a failure instead of a coincidence. <span class="chip c-nc">NC-2</span></p>
+  </div></div>
+
+  <div class="wex-step"><div class="wex-n">4</div><div class="wex-b">
+    <h3>The card that falls out</h3>
+    <p>The same file generates what a partner reads. They never open the JSON.</p>
+    <pre># Button — what you may use
+variant   default · outline · secondary · surface · ghost · destructive · link
+size      default · xs · sm · lg · xl · xxl · icon · icon-xs · icon-sm · icon-lg
+States handled for you: hover, focus-visible, active, disabled.
+
+## What this component will not do
+<b>No success or warning variant.</b>
+The palette carries one accent and one destructive; a third signal color is a
+token decision, not a component decision.</pre>
+    <p><b>The gap is the useful half.</b> Without it, a partner who needs a green confirm button gets silence and reaches for a hex value. With it, they get a reason and a way to ask — written once, by the person who knew why.</p>
+  </div></div>
+
+  <div class="wex-step"><div class="wex-n">5</div><div class="wex-b">
+    <h3>What one small file bought</h3>
+    <table class="bought">
+      <thead><tr><th></th><th>Before</th><th>After</th></tr></thead>
+      <tbody>
+        <tr><td>The default</td><td class="was">Two answers, one dead, nobody aware</td><td class="now">One answer, checked on every run</td></tr>
+        <tr><td>Handing it over</td><td class="was">“Use the Button component” and a Slack thread</td><td class="now">A card with all 70 combinations and the one thing it won't do</td></tr>
+        <tr><td>Asking for green</td><td class="was">A hex value in a prototype, caught in review or never</td><td class="now">A one-line request against a reviewed file</td></tr>
+        <tr><td>Cost to keep true</td><td class="was">Human vigilance</td><td class="now">One command, seconds, exit code <span class="chip c-nc">NC-6</span></td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:10px">No design tool, no plugin, no migration. One JSON file, one component, one command.</p>
+  </div></div>
+</div>
+
+<h2>Findings</h2>
+<p class="kick">Three specialists read the same work. The lens tells you who is speaking; the recommendation is theirs. Where something went wrong, it is a gap in the tool, not a mistake by whoever wrote the component.</p>
+<div class="tblwrap"><table>
+<thead><tr><th>#</th><th>Lens</th><th>Reads as</th><th>Finding</th><th>Recommendation</th></tr></thead>
+<tbody>
+<tr><td class="id">EN-1</td><td><span class="chip c-en">ENGINEER</span></td><td><span class="chip c-crit">CRITICAL</span></td>
+  <td><span class="fh">The rival-rule check cried wolf 23 times.</span><span class="fd">It counted the button's own hover state as a rival, and it suspected rules like <code>.beat p</code> that can never touch a link. <span class="chip c-nc">NC-4</span></span></td>
+  <td class="rec">Let each part say what element it renders, so rules that could never reach it are dismissed on sight. Treat a part's own hover and focus as the same owner in another state. The two real catches survive both fixes.</td></tr>
+<tr><td class="id">PD-1</td><td><span class="chip c-pd">PRODUCT</span></td><td><span class="chip c-crit">CRITICAL</span></td>
+  <td><span class="fh">The part a partner touches is the part not built.</span><span class="fd">Everything so far serves the librarian and the CI machine. The card a partner reads before prototyping — the reason you asked for this skill — is still a stub.</span></td>
+  <td class="rec">Write that card next. Its test is concrete: someone given only the card can build a flow that passes the checker without one hardcoded value.</td></tr>
+<tr><td class="id">EN-2</td><td><span class="chip c-en">ENGINEER</span></td><td><span class="chip c-str">STRENGTH</span></td>
+  <td><span class="fh">The real catches are real.</span><span class="fd">Your Button declares its default size in two places that disagree, and the sketchbook CTA loses its own text color to a page-wide rule. Both found on the first run; neither known before. <span class="chip c-nc">NC-4 · NC-5</span></span></td>
+  <td class="rec">Keep the fail-loud stance: when the checker cannot read a file it says so and fails, instead of passing in silence. Write today's five sabotages into MUTATIONS.md as the permanent record.</td></tr>
+<tr><td class="id">PD-2</td><td><span class="chip c-pd">PRODUCT</span></td><td><span class="chip c-str">STRENGTH</span></td>
+  <td><span class="fh">Writing a contract found a missing component.</span><span class="fd">The sketchbook CTA turned out to be two loose classes inside a 500-line page — which is exactly why its bug could ship. The checker's confusion was pointing at the real problem.</span></td>
+  <td class="rec">Make this a designed outcome: when extraction cannot find a component, the skill says “this wants to be a component” and shows the boundary it was looking for.</td></tr>
+<tr><td class="id">VD-1</td><td><span class="chip c-vd">VISUAL</span></td><td><span class="chip c-str">STRENGTH</span></td>
+  <td><span class="fh">The contract can explain a no.</span><span class="fd">Its <code>gaps</code> field holds refusals you wrote in advance: “no success variant — a third signal color is a token decision, not a component decision.” A partner hears the system's reasoning, in your words. <span class="chip c-nc">NC-7</span></span></td>
+  <td class="rec">Carry <code>gaps</code> word-for-word into every partner card, so a refusal always arrives in the system's voice rather than an agent's improvisation.</td></tr>
+<tr><td class="id">VD-2</td><td><span class="chip c-vd">VISUAL</span></td><td><span class="chip c-gap">GAP</span></td>
+  <td><span class="fh">A contract has no picture.</span><span class="fd">The file names every option, but a designer cannot see a contract — and your component gallery, which shows exactly this, is never mentioned.</span></td>
+  <td class="rec">Give the contract an optional link to its gallery entry, and put that link on the partner card beside the option list.</td></tr>
+<tr><td class="id">VD-3</td><td><span class="chip c-vd">VISUAL</span></td><td><span class="chip c-gap">GAP</span></td>
+  <td><span class="fh">The list of allowed states is closed.</span><span class="fd">Six states are built in. A groovebox key is <code>armed</code> or <code>playing</code>, and the schema has no way to say so — the same rigidity Vallaure's article complains about in Figma variants. <span class="chip c-nc">NC-1 · NC-7</span></span></td>
+  <td class="rec">Accept any state name, keep the six as documented conventions, and have the checker mark unknown states as unverified rather than invalid.</td></tr>
+<tr><td class="id">VD-4</td><td><span class="chip c-vd">VISUAL</span></td><td><span class="chip c-gap">GAP</span></td>
+  <td><span class="fh">For Tailwind components, the styling section covers less than it appears to.</span><span class="fd">Utility classes carry most of the real styling; the contract governs the token references it can see. A designer reading it would assume it is the whole picture. <span class="chip c-nc">NC-2</span></span></td>
+  <td class="rec">Curtis settles this one: state each decision once, and delete what cannot be verified. Govern the option axes, defaults, semantics, and the token references the checker can map — and remove the styling claims it cannot. If deleting a sentence changes nothing checkable, it was never part of the contract.</td></tr>
+<tr><td class="id">EN-3</td><td><span class="chip c-en">ENGINEER</span></td><td><span class="chip c-gap">GAP</span></td>
+  <td><span class="fh">The hardcoded-color scan reads the whole stylesheet.</span><span class="fd">It flagged a color in a gradient that has nothing to do with the button. Right instinct on a small component file; a flood on a page-sized one. <span class="chip c-nc">NC-4</span></span></td>
+  <td class="rec">Scan only the rules that style the contracted parts, including their states.</td></tr>
+<tr><td class="id">EN-4</td><td><span class="chip c-en">ENGINEER</span></td><td><span class="chip c-gap">GAP</span></td>
+  <td><span class="fh">The color net has holes.</span><span class="fd">The scan recognizes hex values only — <code>rgb()</code> and <code>oklch()</code> walk past it, and a Tailwind value like <code>bg-[#b8559b]</code> is never looked at. <span class="chip c-nc">NC-4</span></span></td>
+  <td class="rec">Widen the net to every color notation, add a scan of class strings on the Tailwind side, then sabotage both spellings — the house rule for any guard.</td></tr>
+<tr><td class="id">EN-5</td><td><span class="chip c-en">ENGINEER</span></td><td><span class="chip c-gap">GAP</span></td>
+  <td><span class="fh">Misspell a field and every check quietly passes.</span><span class="fd">The schema forbids unknown fields, but the checker never enforces that. A typo in <code>props</code> would switch off most of the checking without a word — and <q>a format where nothing is invalid is a format where nothing is verifiable.</q> <span class="chip c-nc">NC-4</span></span></td>
+  <td class="rec">Walk the contract for unknown keys before checking anything. Ten lines, no dependency, and it closes the quietest failure in the file.</td></tr>
+<tr><td class="id">PD-3</td><td><span class="chip c-pd">PRODUCT</span></td><td><span class="chip c-gap">GAP</span></td>
+  <td><span class="fh">The version number does not mean anything yet.</span><span class="fd">Change requests have a file format, but nothing says what accepting one does — nothing bumps the version, so the version carries no information. <span class="chip c-nc">NC-7</span></span></td>
+  <td class="rec">Define it: minor bump for a new option or prop, patch for a fix. Accepting a change means: apply it, bump the version, change the code, re-run the checker — in that order. A change that reshapes the contract itself also gets a short decision record beside it, so the shape has a history.</td></tr>
+<tr><td class="id">PD-5</td><td><span class="chip c-pd">PRODUCT</span></td><td><span class="chip c-gap">GAP</span></td>
+  <td><span class="fh">The schema and the contracts shared one version.</span><span class="fd">The model of what a contract can say, and each contract's own content, move on different clocks — implementing depends on both. <span class="chip c-nc">NC-7</span></span></td>
+  <td class="rec">Fixed during this review: the schema now carries its own version and its address names it (<code>/v1/</code>). Each contract records which schema it was written against.</td></tr>
+<tr><td class="id">PD-4</td><td><span class="chip c-pd">PRODUCT</span></td><td><span class="chip c-gap">GAP</span></td>
+  <td><span class="fh">128 components, no rule for which deserve contracts.</span><span class="fd">A contract nobody prototypes against is inventory with a maintenance bill attached. <span class="chip c-nc">NC-6</span></span></td>
+  <td class="rec">Contract the prototyping kit only — the five to eight components partners actually reach for. Write that scope into the skill itself so extraction stays narrow on purpose.</td></tr>
+<tr><td class="id">EN-6</td><td><span class="chip c-en">ENGINEER</span></td><td><span class="chip c-gap">GAP</span></td>
+  <td><span class="fh">The checker reads code by pattern, not with a real parser.</span><span class="fd">An arrow-function component or a variant table held in a variable would defeat it. Acceptable only because it fails loud when it cannot read. <span class="chip c-nc">NC-5</span></span></td>
+  <td class="rec">Every code shape the checker claims to read gets its own sabotage test before the skill ships. A shape nobody watched fail is a shape that is not supported.</td></tr>
+</tbody>
+</table></div>
+
+<h2>Two findings worth slowing down for</h2>
+
+<div class="dive">
+  <h3><span class="chip c-en">ENGINEER</span> &nbsp;EN-1 · Why the 23 false alarms matter more than the 2 bugs</h3>
+  <p>The two real catches make the skill look finished. They are the trap. Your own working rule says a guard that fires on correct code is as broken as one that never fires — it teaches the person reading it to stop reading. Twenty-three findings deep, the one real catch is background noise.</p>
+  <p>Here is that real catch on its own. Specificity is the score CSS uses to pick a winner when two rules want the same property — and the contract's rule loses:</p>
+  <div class="spec">
+    <div class="specbox"><div class="sel">.btnPrimary</div><div class="num">0,1,0</div><div class="lbl">the contract's rule · color: var(--ground)</div></div>
+    <div class="specbox wins"><div class="sel">.page a</div><div class="num">0,1,1</div><div class="lbl">the winner · color: inherit → ink on ink</div></div>
+  </div>
+  <p class="why" style="color:var(--muted);font-size:14px">The value you decided is written, matched, and loses — the source reads correct while the button renders wrong. No linter sees this class of bug, which is why this check earns its place. The fix is aim, not ambition: once a part says it renders a link, rules on <code>em</code>, <code>p</code> and <code>h3</code> are dismissed on sight, and the part's own hover is recognized as the same owner in another state.</p>
+</div>
+
+<div class="dive">
+  <h3><span class="chip c-pd">PRODUCT</span> &nbsp;PD-2 · The checker's most confused finding was its most useful</h3>
+  <p>“The contract says <code>a</code>, the code renders <code>div</code>” sounds like the checker failing — it had read the root of a 500-line page, because that page is where the CTA lives. But its confusion points at the real problem: <b>the sketchbook CTA is not a component.</b> It is two loose classes in a page stylesheet, which is exactly how a black-on-black button shipped without any test noticing. Where extraction cannot find a component, that is a map of what should become one next. The skill should say this on purpose instead of stumbling into it.</p>
+</div>
+
+<h2>What good looks like</h2>
+<p class="kick">Three artifacts a user of this skill should expect to produce, drafted from today's real Button contract. This is the standard the skill is aiming at.</p>
+
+<div class="ex">
+  <div class="ex-head"><h3>A contract that can refuse</h3><span class="chip c-str">BEST CASE</span></div>
+  <div class="ex-body">
+    <pre>"props": [{
+  "name": "variant",
+  "type": { "enum": ["default","outline","secondary","surface","ghost","destructive","link"] },
+  "default": "default"
+}],
+"gaps": [{
+  "what": "No success or warning variant.",
+  "why":  "The palette carries one accent and one destructive; a third
+           signal color is a token decision, not a component decision."
+}]</pre>
+    <p class="why"><b>Why it works:</b> the option list is the fence and the gap is the gate. When a partner asks for the thing outside the fence, the answer already exists, in the system's own reasoning — nobody improvises a no, and nobody invents a green button at 4:50 on a Friday.</p>
+  </div>
+</div>
+
+<div class="ex">
+  <div class="ex-head"><h3>The card a partner actually receives</h3><span class="chip c-str">BEST CASE</span></div>
+  <div class="ex-body">
+    <pre>## Button — what you may use
+variant   default · outline · secondary · surface · ghost · destructive · link
+size      default · xs · sm · lg · xl · xxl · icon · icon-xs · icon-sm · icon-lg
+see it    /component-gallery#button
+
+Color, radius, spacing: only through tokens this component already reads.
+Never restyle it, never fork it, never write a hex value.
+
+## If your flow needs something not on this card
+Do not invent it. Say “the system can't do this yet” and file the ask:
+  { "prop": "variant", "add": "success", "because": "…" }</pre>
+    <p class="why"><b>Why it works:</b> this is the 69-versus-100 result from Southleft's test, turned into a working rule. An agent left to taste scored 69 out of 100 — it invented options and hardcoded colors. The same agent handed a strict rulebook scored 100, <i>because it was allowed to say no.</i> The refusal rule is the card; the tables are what makes the rule fair.</p>
+  </div>
+</div>
+
+<div class="ex">
+  <div class="ex-head"><h3>The honest refusal, end to end</h3><span class="chip c-str">BEST CASE</span></div>
+  <div class="ex-body">
+    <div class="dialogue">
+      <div class="say partner"><span class="who">Partner, prototyping a checkout flow</span>“Make the confirm button green so it reads as success.”</div>
+      <div class="say agent"><span class="who">Agent, holding the contract</span>“The system can't do this yet — Button has no success variant, and the contract says why: a third signal color is a token decision. I built it with <code>default</code> and filed a request for <code>variant: success</code>. If it's accepted, this screen picks it up with a one-word change.”</div>
+      <div class="say partner"><span class="who">Librarian, in review</span>Accepts the request → adds the token pair → widens the option list → bumps 1.0.0 → 1.1.0 → code follows → checker green.</div>
+    </div>
+    <p class="why"><b>Why it works:</b> the system grew by one honest step, and it grew <i>in the contract first</i>. The prototype never lied about what the system could do, and the review happened where a review can happen — on a one-line change to a small file, not on a rendered screen someone already loves.</p>
+  </div>
+</div>
+
+<h2>State of the build</h2>
+<div class="ledger">
+  <div class="done"><h3 style="color:var(--pass)">Built, proven, and committed</h3><ul>
+    <li><code>SKILL.md</code> — four modes, the one rule, the status note</li>
+    <li><code>contract.schema.json</code> — Southleft-compatible subset, its own version</li>
+    <li><code>tools/check.mjs</code> — 8 checks, no dependencies, verdicts by exit code</li>
+    <li><code>tools/card.mjs</code> — the partner card, generated from the contract</li>
+    <li><code>references/</code> ×5 — Curtis's facets, fields, extraction, drift, amendments</li>
+    <li><code>example/</code> — two real contracts and the Button walked end to end</li>
+    <li><code>tools/MUTATIONS.md</code> — 10 mutations, re-run, results transcribed from the run</li>
+    <li>Repo seams — README row, <code>~/.claude/skills</code> symlink, design-contract L1 citing the cards</li>
+  </ul></div>
+  <div class="todo"><h3 style="color:var(--warn)">Open, and named on purpose</h3><ul>
+    <li><b>C7 is unproven</b> — no component in <code>components/ui/</code> lacks a focus ring to mutate against</li>
+    <li><b>Three code shapes untested</b> — <code>forwardRef</code>, a cva config held in a variable, the <code>inline</code> idiom</li>
+    <li><b>VD-2</b> — a contract still has no link to its gallery entry</li>
+    <li><b>VD-3</b> — states accept any name, but the checker does not yet report unknown ones as unverified</li>
+    <li><b>PD-4</b> — one contract exists; the prototyping kit wants five to eight</li>
+    <li><b>22 pre-existing voice hits</b> in design-dna and open-sketchbook, left for a deliberate pass</li>
+  </ul></div></div>
+<p>That queue is done, in the order the three lenses agreed: the checker's aim, then the partner card, then SKILL.md, the references, and MUTATIONS.md last. <b>What remains is listed above rather than closed quietly</b> — four of the six are checks and code shapes nobody has watched fail, which by this repo's own standard makes them unproven, not passing.</p>
+
+
+<h2>The reference run</h2>
+<p class="kick">One component through the whole loop, done the way the skill intends — including the part the earlier walkthrough stops before: what happens after the check goes red, and what happens when a partner needs something the system does not have.</p>
+
+<div class="cs">
+  <div class="cs-lede">
+    <p><b>The component:</b> <code>Button</code> in <code>alfredo-studio</code>. Seven variants, ten sizes, one governing system, one file.</p>
+    <p>Below is that Button rendered from <b>nothing but its contract and the two token files the contract names</b> — no component code was read to draw it. That is the demonstration: a contract complete enough to render from is a contract complete enough to hold code to.</p>
+  </div>
+
+  <div class="pv">
+    <div class="pv-h"><b>Button — live preview</b><span>drawn from the contract's tokens · follows your theme</span></div>
+    <div class="pv-row"><span class="pv-lab">variant</span><span class="b v-default">Save</span><span class="b v-outline">Cancel</span><span class="b v-secondary">Preview</span><span class="b v-surface">Export</span><span class="b v-ghost">Dismiss</span><span class="b v-destructive">Delete</span><span class="b v-link">Learn more</span></div>
+    <div class="pv-row"><span class="pv-lab">size</span><span class="b v-default s-sm">Small</span><span class="b v-default">Default</span><span class="b v-default s-lg">Large</span><span class="b v-default s-xl">Extra large</span><span class="b v-default s-icon">+</span></div>
+    <div class="pv-row"><span class="pv-lab">state</span><span class="b v-default">Rest</span><span class="b v-default foc">Focused</span><span class="b v-default dis">Disabled</span><span class="b v-outline foc">Focused</span></div>
+    <p class="pv-note">Ground, ink, accent and radius come from <code>public/shared/tokens-core.css</code> and <code>app/globals.css</code> — the exact files <code>system.tokenFiles</code> names, which is why this block ignores the report's palette and wears the studio's. Heights are the contract's size tiers: 28 · 32 · 36 · 44px. The focus ring is drawn because <code>a11y.focusVisible</code> is true, and C7 checks that claim is real.</p>
+  </div>
+
+  <div style="padding:20px 24px 4px">
+  <div class="loop">
+    <div class="ln"><div class="dot">1</div><div class="bar"></div></div>
+    <div class="st"><h4>Name the system before reading a line of code</h4>
+      <p>Four design systems live in this repo. Deciding which governs <code>button.tsx</code> is the first move, because every later finding inherits the answer — “it doesn't use our tokens” is the wrong finding about a component that belongs to another surface. <span class="chip c-nc">NC-3</span></p>
+      <pre>"system": { "name": "alfredo-studio core",
+            "authority": "CLAUDE.md",
+            "tokenFiles": ["app/globals.css", "public/shared/tokens-core.css"] }</pre></div>
+
+    <div class="ln"><div class="dot">2</div><div class="bar"></div></div>
+    <div class="st"><h4>Extract from the code as it is, never as it should be</h4>
+      <p>Both defaults get written down, including the two that disagree. <b>A contract describing the system you wish you had cannot fail its first check</b> — and a check that cannot fail has told you nothing. <span class="chip c-nc">NC-5</span></p></div>
+
+    <div class="ln"><div class="dot">3</div><div class="bar"></div></div>
+    <div class="st"><h4>Run it, and expect red on day one</h4>
+      <p>The first run found a default declared twice with two different answers, shipping for months in a reviewed file.</p>
+      <pre><span class="t-fail">✗ [C3]</span> `size` has TWO declared defaults that disagree
+     cva says `lg`; the signature says `default`. The signature wins.</pre>
+      <p>Red here is the contract working, not the extraction failing.</p></div>
+
+    <div class="ln"><div class="dot">4</div><div class="bar"></div></div>
+    <div class="st"><h4>Fix it in the right order</h4>
+      <p><b>The contract states the intended default; the code follows.</b> Not the reverse — the same edit made where nobody reviews it is exactly the drift a contract exists to prevent.</p>
+      <pre><span class="t-pass">PASS</span>  button.contract.json
+1 contract checked — 1 passing, 0 drifted.        <span class="t-dim">exit 0</span></pre>
+      <p>Green is the evidence the change landed on both sides — and it is the half of a guard most people never test.</p></div>
+
+    <div class="ln"><div class="dot">5</div><div class="bar"></div></div>
+    <div class="st"><h4>Hand out the card, not the JSON</h4>
+      <p>One command turns the contract into the page a partner reads: every option, the rules, the gaps in the system's own words, and the refusal rule. Regenerated whenever the contract moves, so the two can never disagree.</p></div>
+
+    <div class="ln"><div class="dot">6</div><div class="bar"></div></div>
+    <div class="st"><h4>A partner hits the fence, and the system grows by one honest step</h4>
+      <p>“Make the confirm button green.” There is no green. The contract already says why, so the answer arrives in the system's voice: <b>a third signal color is a token decision, not a component decision.</b></p>
+      <pre>{ "prop": "variant", "add": "success",
+  "because": "Checkout confirmation needs a positive signal
+              distinct from the accent." }</pre>
+      <p>The prototype ships with <code>default</code> and says where it stopped. A reviewer adds the token pair, widens the option list, bumps <b>1.0.0 → 1.1.0</b>, code follows, checker green. The screen picks it up with a one-word change. <span class="chip c-nc">NC-7</span></p></div>
+
+    <div class="ln"><div class="dot end">↻</div></div>
+    <div class="st"><h4>Back to step 3, forever</h4>
+      <p>The loop has no end state. What it has is a cost near zero per turn — one command, seconds, an exit code — which is the only reason a contract stays true instead of rotting while everyone still trusts it. <span class="chip c-nc">NC-6</span></p></div>
+  </div>
+  </div>
+
+  <div class="cs-close">
+    <p><b>What made this correct:</b> the system was named first, the contract was written from real code, the first run was allowed to fail, the fix went into the contract before the code, the partner read a generated card rather than the file, and the one thing the system could not do was refused out loud and then built properly. Six moves, one component, and not one of them needed a design tool.</p>
+  </div>
+</div>
+
+<footer>component-contract · ~/Code/claude-skills · reviewed against alfredo-studio @ 3dcea80e · lenses: visual design / product design / design-systems engineering · sources: N. Curtis, “Component Contracts and Schemas” (Jul 2026) — the guiding principles; C. Vallaure, “Design system contracts” (Jul 2026); southleft/ds-contracts-poc · voice per design-token-vitals/references/voice.md</footer>
+</div>

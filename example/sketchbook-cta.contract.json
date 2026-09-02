@@ -1,0 +1,91 @@
+{
+  "$schema": "../contract.schema.json",
+  "id": "sketchbook.cta",
+  "name": "AboutView",
+  "version": "1.0.0",
+  "status": "draft",
+  "description": "The landing page call-to-action pill on the pocket-sketchbook about surface. Its own semantic surface: ink on paper, one blue used only as a mark.",
+  "archetype": "button",
+  "system": {
+    "name": "pocket-sketchbook (own surface)",
+    "authority": "app/(studio)/pocket-sketchbook/about/about.module.css",
+    "tokenFiles": [
+      "app/(studio)/pocket-sketchbook/about/about.module.css"
+    ]
+  },
+  "semantics": {
+    "element": "a"
+  },
+  "props": [
+    {
+      "name": "variant",
+      "description": "Primary is ink-filled; ghost is a hairline outline.",
+      "type": {
+        "enum": [
+          "primary",
+          "ghost"
+        ]
+      },
+      "default": "primary",
+      "bindings": {
+        "code": {
+          "prop": "variant"
+        }
+      }
+    }
+  ],
+  "states": [
+    "hover",
+    "active"
+  ],
+  "anatomy": {
+    "root": {
+      "selector": "btn",
+      "tokens": {
+        "min-height": "44px"
+      },
+      "parts": {
+        "primary": {
+          "selector": "btnPrimary",
+          "tokens": {
+            "background": "var(--ink)",
+            "color": "var(--ground)"
+          },
+          "element": "a",
+          "scope": [
+            "page"
+          ]
+        },
+        "ghost": {
+          "selector": "btnGhost",
+          "tokens": {
+            "color": "var(--ink-soft)"
+          },
+          "element": "a",
+          "scope": [
+            "page"
+          ]
+        }
+      },
+      "element": "a",
+      "scope": [
+        "page"
+      ]
+    }
+  },
+  "a11y": {
+    "focusVisible": true,
+    "minHitArea": 44,
+    "contrast": "AA"
+  },
+  "bindings": {
+    "code": {
+      "anchors": {
+        "sourcePath": "app/(studio)/pocket-sketchbook/about/about-view.tsx",
+        "stylePath": "app/(studio)/pocket-sketchbook/about/about.module.css",
+        "export": "AboutView",
+        "idiom": "css-module"
+      }
+    }
+  }
+}
