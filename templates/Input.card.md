@@ -2,7 +2,7 @@
 
 A single-line text field. One appearance, no variants — every input in the studio looks the same on purpose.
 
-Part of **alfredo-studio core**. Everything below comes from that system; nothing below is a suggestion.
+Part of **alfredalfred core**. Everything below comes from that system; nothing below is a suggestion.
 
 ## The options
 

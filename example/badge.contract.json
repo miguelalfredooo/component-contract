@@ -7,7 +7,7 @@
   "description": "A small status or category label. Not a control — if it can be pressed, reach for Button instead.",
   "archetype": "label",
   "system": {
-    "name": "alfredo-studio core",
+    "name": "alfredalfred core",
     "authority": "CLAUDE.md",
     "tokenFiles": ["app/globals.css", "public/shared/tokens-core.css"]
   },
