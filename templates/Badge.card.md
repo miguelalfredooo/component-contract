@@ -2,7 +2,7 @@
 
 A small status or category label. Not a control — if it can be pressed, reach for Button instead.
 
-Part of **alfredo-studio core**. Everything below comes from that system; nothing below is a suggestion.
+Part of **alfredalfred core**. Everything below comes from that system; nothing below is a suggestion.
 
 ## The options
 

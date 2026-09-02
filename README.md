@@ -40,7 +40,7 @@ Roughly sixty lines. Everything in it is checkable, and anything that is not has
   "id": "studio.button",
   "name": "Button",
   "version": "1.0.0",
-  "system": { "name": "alfredo-studio core",
+  "system": { "name": "alfredalfred core",
               "tokenFiles": ["app/globals.css", "public/shared/tokens-core.css"] },
   "semantics": { "element": "button" },
   "props": [

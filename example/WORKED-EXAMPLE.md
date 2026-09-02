@@ -47,7 +47,7 @@ and every line is checkable.
 ```jsonc
 {
   "id": "studio.button",
-  "system": { "name": "alfredo-studio core",
+  "system": { "name": "alfredalfred core",
               "tokenFiles": ["app/globals.css", "public/shared/tokens-core.css"] },
   "semantics": { "element": "button" },
   "props": [

@@ -7,7 +7,7 @@
   "description": "The studio's action control. shadcn primitive, cva-variant, used everywhere a person triggers something. Composition layers wrap it; nothing re-implements it.",
   "archetype": "button",
   "system": {
-    "name": "alfredo-studio core",
+    "name": "alfredalfred core",
     "authority": "CLAUDE.md",
     "tokenFiles": ["app/globals.css", "public/shared/tokens-core.css"]
   },

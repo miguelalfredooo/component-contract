@@ -2,7 +2,7 @@
 
 The studio's action control. shadcn primitive, cva-variant, used everywhere a person triggers something. Composition layers wrap it; nothing re-implements it.
 
-Part of **alfredo-studio core**. Everything below comes from that system; nothing below is a suggestion.
+Part of **alfredalfred core**. Everything below comes from that system; nothing below is a suggestion.
 
 ## The options
 

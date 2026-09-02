@@ -7,7 +7,7 @@
   "description": "A single-line text field. One appearance, no variants — every input in the studio looks the same on purpose.",
   "archetype": "field",
   "system": {
-    "name": "alfredo-studio core",
+    "name": "alfredalfred core",
     "authority": "CLAUDE.md",
     "tokenFiles": ["app/globals.css", "public/shared/tokens-core.css"]
   },
