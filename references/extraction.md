@@ -58,6 +58,45 @@ The one exception the checker does see: an arbitrary value like `bg-[#b8559b]`,
 which is a hardcoded color bypassing the token layer where no stylesheet scan
 could ever find it (C5).
 
+## Idiom: `variant-map`
+
+**What this is.** The shape underneath `cva()` itself, without the library:
+a plain object literal mapping variant value to a class string, indexed
+directly by the prop — `variants[variant]`, `sizes[size]`. Found running
+Author mode against a real design-system codebase whose entire component set
+is written this way, with `class-variance-authority` imported nowhere in it;
+neither `cva` (no `cva()` call — UNREADABLE) nor `plain` (it has real
+variants) fit.
+
+**What the checker reads.** Not a specific function call — there isn't one.
+It finds where the destructured prop does a computed member access into an
+identifier (`<object>[prop]`), then reads the object literal that identifier
+was assigned from. One axis is one object; a component with a `variant` axis
+and a `size` axis has two separate `const` declarations, read independently,
+unlike `cva`'s single nested `variants` config.
+
+**Supported shapes.**
+
+| Shape | Read? |
+|---|---|
+| `const x = { a: '...', b: '...' }`, later indexed `x[prop]` | yes |
+| Same, indexed `x[props.prop]` | yes |
+| The object literal held in a variable never actually indexed by the prop anywhere in the file | **no — UNREADABLE**, same standard as an unreadable `cva()` config |
+| A defaults config separate from the destructured signature (this idiom's analog of `cva`'s `defaultVariants`) | **not supported** — the signature default is the only default this idiom reads. If a component needs two owners for a default, it isn't really this idiom. |
+
+**What the contract governs here, and what it does not.** Same split as
+`cva`: option axes, defaults, semantics, states and the token references the
+contract's own `anatomy` names. The Tailwind utilities inside each variant's
+class string are not restated and not governed, for the same reason — a
+claim nothing checks is drift waiting to happen (NC-2).
+
+**Known asymmetry with `cva`.** `cva`'s reader also checks the reverse
+direction — a whole variant axis (another `variants.<key>`) that no contract
+prop governs. `variant-map` does not: that would need a full inventory of
+every object literal indexed anywhere in the file, which this reader
+deliberately does not attempt. Named as a real gap, not silently absent —
+see `tools/MUTATIONS.md` Run 4.
+
 ## Idiom: `css-module`
 
 **What the checker reads.** The stylesheet named by `stylePath`, parsed into

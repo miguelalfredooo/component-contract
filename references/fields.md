@@ -118,5 +118,5 @@ stays independent of how this repo happens to build things (NC-3).
 | `code.anchors.sourcePath` | Repo-relative path to the component. | every check |
 | `code.anchors.stylePath` | Its stylesheet, where styling lives outside the component file. | C1, C5, C8 |
 | `code.anchors.export` | The exported symbol to read. | C1, C3, C6 |
-| `code.anchors.idiom` | `cva` · `css-module` · `plain` · `inline`. Decides how the checker reads the file. `plain` is a component with no variant system — the option checks are skipped and said to be skipped. | every check |
+| `code.anchors.idiom` | `cva` · `variant-map` · `css-module` · `plain` · `inline`. Decides how the checker reads the file. `variant-map` is `cva`'s shape without the library — a hand-written object literal indexed by the prop. `plain` is a component with no variant system — the option checks are skipped and said to be skipped. | every check |
 | `figma.anchors` | File key, component set, node id. Recorded, never checked. | nothing |

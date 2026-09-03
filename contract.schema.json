@@ -265,11 +265,12 @@
                 "idiom": {
                   "enum": [
                     "cva",
+                    "variant-map",
                     "css-module",
                     "plain",
                     "inline"
                   ],
-                  "description": "How this component declares its variants. Decides how the checker reads it. `plain` is a component with no variant system at all \u2014 the option checks do not apply, everything else does."
+                  "description": "How this component declares its variants. Decides how the checker reads it. `plain` is a component with no variant system at all \u2014 the option checks do not apply, everything else does. `variant-map` is the shape underneath `cva` itself: a plain object literal mapping variant value to a class string, indexed by the prop, without the cva() wrapper."
                 }
               }
             }

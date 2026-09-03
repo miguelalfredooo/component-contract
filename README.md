@@ -20,11 +20,12 @@ A component exists twice: as the design someone decided, and as the code that sh
   - Options, defaults, semantics, states, the tokens each part reads
   - `gaps` — what the component deliberately cannot do, and why
   - Its own version, moving separately from the schema's
-- **Four modes**: Extract a contract from real code · Check it against that code · generate the partner Card · Amend it when the system must grow
+- **Five modes**: Author a contract before the code exists, or finish one that's half-built · Extract one from real code · Check it against that code · generate the partner Card · Amend it when the system must grow
 - **Nine checks** (`C0`–`C8`): `C0` asks whether the contract is validly formed, `C1`–`C8` whether it is precisely implemented
-- **Four styling idioms**: `cva`, `css-module`, `plain`, `inline` — the checker reads each differently, and says so when it cannot read one
+- **Five styling idioms**: `cva`, `variant-map`, `css-module`, `plain`, `inline` — the checker reads each differently, and says so when it cannot read one
 - **A seven-facet principle set** (`NC-1`–`NC-7`), adopted from Nathan Curtis's *Component Contracts and Schemas*
 - **Sixteen recorded mutations** proving each check bites, in both directions
+- **An evergreen defaults table** for the questions someone can't answer yet at authoring time — repo convention first, a small conservative fallback second, always written down as `UNCONFIRMED` in a companion `.recommendations.md` rather than silently decided
 - **Two outputs**: a per-component partner card, and a pass/fail run whose exit code is the result
 
 **What it does not do.** It records Figma bindings but never checks them. It does not generate code or Figma variants — it verifies that two copies agree. It cannot say whether the design is good: a contract can state that a Card takes a header, a body and a footer, but not what a good pricing card looks like. That takes worked examples, and they sit beside a contract rather than inside it.
@@ -95,6 +96,20 @@ That matters beyond convenience: the checker is a compiler, not a model. Same co
 ---
 
 ## Useful prompts
+
+```
+/component-contract help me build a contract for a new Tooltip — nothing's built yet
+```
+
+What happens here, since there's no code to read: it asks one section at a
+time (name → governing system → what it's for → semantics → props, looped →
+states → anatomy/tokens → a11y → gaps → where the code will live), and if an
+answer isn't known yet it checks repo convention first, falls back to a small
+evergreen default, and writes down which one happened rather than guessing
+silently. It writes the contract as `status: draft`, runs the one check that
+needs no code (`C0`), reports the other eight as **N/A until the code lands**,
+and generates the partner card anyway — that's the thing someone actually
+prototypes against today. Full sequence: `references/authoring.md`.
 
 ```
 /component-contract write a contract for components/ui/Badge.tsx
@@ -169,11 +184,12 @@ Every finding cites a numbered facet or names its check. No verdicts from taste.
 
 - `references/curtis-principles.md` — `NC-1`–`NC-7`, the standard for what makes a contract good, with how this skill applies each
 - `references/fields.md` — every contract field, what it is for, and which check reads it
+- `references/authoring.md` — building a contract with a person before code exists: the question sequence, the triage table for "does this already half-exist," and the evergreen defaults for what nobody's decided yet
 - `references/extraction.md` — how to read a component into a contract, per idiom, and which code shapes are unsupported
 - `references/drift.md` — the nine checks, what each catches, and **what the bug looks like when nobody is checking**
 - `references/amendment.md` — the refusal, the proposal, and what accepting one means
 
-A run walks: name the governing system, read the code as it is, fill only what is checkable, write the gaps, run the checker. The contract is a draft until that last step.
+An extraction walks: name the governing system, read the code as it is, fill only what is checkable, write the gaps, run the checker. An authoring session walks the same fields in the same order, answered by a person instead of read from a file — anything unknown gets a repo-sourced or evergreen recommendation, written down as unconfirmed rather than guessed silently. Either way, the contract is a draft until a check has actually run against real code.
 
 **The one rule.** Code and the contract never update each other directly. A change goes into the contract first, is reviewed there, and both sides follow. In practice: never edit a component to match a contract, and never widen a contract to match code, without saying so as an amendment.
 
@@ -191,6 +207,7 @@ component-contract/
 ├── references/
 │   ├── curtis-principles.md          NC-1 … NC-7
 │   ├── fields.md                     every field, and which check reads it
+│   ├── authoring.md                  the question sequence, triage, evergreen defaults
 │   ├── extraction.md                 per idiom, and the unsupported shapes
 │   ├── drift.md                      the nine checks and their silent failures
 │   └── amendment.md                  refusal, proposal, accept sequence
@@ -258,6 +275,8 @@ Known limits, named rather than discovered:
 - **No check here sees layout.** jsdom performs no layout and neither does this. Guard the source contract; confirm the pixels in a browser.
 - **`C8` compares selectors within one stylesheet**, which is where the specificity bugs in this repo have actually lived — not across the whole cascade.
 - **Compound components have no idiom yet.** Card and Dialog are next.
+- **Author mode is new and less proven in the field than Extract.** The question sequence and the evergreen defaults table are a considered design; `references/authoring.md`'s own status note is honest about that. Extract's checks have found real bugs in live code (see above); Author mode's mechanism has been dry-run for real, but hasn't accumulated the same track record yet. Treat its output with the same scrutiny as any other draft.
+- ~~**A hand-written variant object with no `cva()` call had no matching idiom.**~~ **Fixed.** Found running Author mode against a real design-system codebase whose entire component set hand-rolls variants without a library, and closed with the `variant-map` idiom — anchored on usage (`<object>[prop]`) rather than a specific function call. Mutation-tested both directions in `tools/MUTATIONS.md` Run 4. Known asymmetry versus `cva`: it doesn't check the reverse direction (an axis object nothing governs) — that would need a full inventory of every indexed object literal in the file, and this reader doesn't attempt it.
 
 Contract the prototyping kit — five to eight components partners actually reach for — not the library. A contract nobody prototypes against is inventory with a maintenance bill.
 

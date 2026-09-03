@@ -18,7 +18,7 @@
  *
  * Usage:  node card.mjs <contract.json> [--out <dir>]
  */
-import { readFileSync, writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { basename, join } from "node:path";
 
 const args = process.argv.slice(2);
@@ -92,6 +92,7 @@ the contract and regenerate, or the two will disagree.*
 
 const outDir = args.includes("--out") ? args[args.indexOf("--out") + 1] : null;
 if (outDir) {
+  mkdirSync(outDir, { recursive: true });
   const p = join(outDir, `${c.name}.card.md`);
   writeFileSync(p, out);
   console.log(`wrote ${p}`);
