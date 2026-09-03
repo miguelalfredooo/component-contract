@@ -44,6 +44,7 @@ import { join, resolve, dirname, basename } from "node:path";
 
 const FAIL = "FAIL";
 const WARN = "WARN";
+const INFO = "INFO";
 
 class Report {
   constructor(contractPath) {
@@ -55,6 +56,12 @@ class Report {
   }
   fail(code, message, detail) { this.add(FAIL, code, message, detail); }
   warn(code, message, detail) { this.add(WARN, code, message, detail); }
+  /** Not a finding about correctness — a fact about what could not run yet.
+   *  Never counts toward `failed`, never affects the exit code. Exists so a
+   *  draft contract's "C1-C8 cannot run without code" is a visible line
+   *  someone reads, not a silent skip and not a red FAIL for something that
+   *  was never claimed to be verified yet. */
+  info(code, message, detail) { this.add(INFO, code, message, detail); }
   get failed() { return this.findings.some((f) => f.level === FAIL); }
 }
 
@@ -172,6 +179,37 @@ function readCva(src) {
     if (db) for (const k of topLevelKeys(db.body)) cvaDefaults[k.name] = unquote(valueAfter(db.body, k.at));
   }
   return { variants, cvaDefaults };
+}
+
+/**
+ * variant-map idiom — the shape underneath cva() itself: a plain object
+ * literal mapping variant value to a class string, with no library wrapper.
+ * Found running Author mode against a real design-system codebase whose
+ * entire component set is written this way — class-variance-authority was
+ * imported nowhere in it, so cva's reader was UNREADABLE on every one of
+ * them and `plain` was the wrong idiom too (they DO have real variants).
+ *
+ * Anchored on USAGE, not on a specific call — there is no `cva(` to find.
+ * Reads where the prop identifier does a computed member access into an
+ * object (`variants[variant]`, `variants[props.variant]`), then reads the
+ * object literal that identifier was assigned from. One axis at a time,
+ * unlike cva's single nested `variants` config, because a hand-rolled system
+ * typically declares one object per axis (`variants`, `sizes`, ...) rather
+ * than one config holding every axis.
+ *
+ * Returns { values: [string], objectName } or { unreadable: reason }.
+ */
+function readVariantMapAxis(src, codeProp) {
+  const useRe = new RegExp(`([A-Za-z_$][\\w$]*)\\s*\\[\\s*(?:props\\.)?${codeProp}\\s*\\]`);
+  const use = useRe.exec(src);
+  if (!use) return { unreadable: `no \`<object>[${codeProp}]\` computed lookup found — this idiom expects the prop to index directly into a variant object` };
+  const objName = use[1];
+  const declRe = new RegExp(`\\b(?:const|let)\\s+${objName}\\s*=\\s*`);
+  const decl = declRe.exec(src);
+  if (!decl) return { unreadable: `\`${objName}\` is indexed by \`${codeProp}\` but is never declared as a \`const\`/\`let\` object literal` };
+  const block = braceBlock(src, decl.index + decl[0].length - 1);
+  if (!block) return { unreadable: `\`${objName}\` is not a balanced object literal` };
+  return { values: topLevelKeys(block.body).map((k) => k.name), objectName: objName };
 }
 
 /**
@@ -364,7 +402,18 @@ function checkContract(contract, repo, report, schema) {
   const idiom = anchors.idiom || "cva";
   const srcPath = anchors.sourcePath && join(repo, anchors.sourcePath);
   if (!srcPath || !existsSync(srcPath)) {
-    report.fail("C0", `component source not found: ${anchors.sourcePath}`, "bindings.code.anchors.sourcePath must be repo-relative and real");
+    // A `draft` contract's sourcePath is a forward declaration — where the
+    // code WILL live, authored before it exists (see references/authoring.md).
+    // Missing source there is the expected state, not drift: C1-C8 need real
+    // code to compare against and cannot be resolved either way. Anything
+    // NOT explicitly draft is claiming to describe real code, so a missing
+    // path there stays a hard FAIL — that claim is either true or it drifted.
+    if (contract.status === "draft") {
+      report.info("C0", "component source not found — expected for a draft",
+        `\`${anchors.sourcePath}\` is where the code WILL live, not where it is. C1-C8 cannot run without it, so they are reported N/A here, not skipped and not failed. Re-run this check once the file exists — it will either promote this contract past draft or report real drift.`);
+    } else {
+      report.fail("C0", `component source not found: ${anchors.sourcePath}`, "bindings.code.anchors.sourcePath must be repo-relative and real");
+    }
     return;
   }
   const src = readFileSync(srcPath, "utf8");
@@ -467,6 +516,48 @@ function checkContract(contract, repo, report, schema) {
       if (!new RegExp(`\\b${codeName}\\b`).test(src))
         report.fail("C1", `contract declares prop \`${p.name}\` which does not appear in ${anchors.sourcePath}`, `nothing named \`${codeName}\` is written in the component`);
       const eff = (sig.defaults || {})[codeName];
+      if (p.default !== undefined && eff !== undefined && String(p.default) !== String(eff))
+        report.fail("C3", `\`${p.name}\` default disagrees with the code`, `contract says \`${p.default}\`; the signature says \`${eff}\`.`);
+    }
+  } else if (idiom === "variant-map") {
+    // The shape underneath cva() itself, without the wrapper — see
+    // readVariantMapAxis. One axis is one object literal, read on demand per
+    // enum prop, so C2's "reverse direction" (an axis nobody's contract
+    // governs) is not checked here the way it is for cva: that would need a
+    // whole-file inventory of every object literal indexed anywhere, which
+    // this idiom does not attempt. Known asymmetry, not an oversight.
+    const sig = readSignatureDefaults(stripLineComments(src), exportName);
+    const sigDefaults = sig.defaults || {};
+    for (const p of contract.props) {
+      const codeName = p.bindings?.code?.prop || p.name;
+      const isEnum = typeof p.type === "object" && Array.isArray(p.type.enum);
+
+      if (!isEnum) {
+        // A non-enum prop has no axis object to read — same as `plain`.
+        if (!new RegExp(`\\b${codeName}\\b`).test(src))
+          report.fail("C1", `contract declares prop \`${p.name}\` which does not appear in ${anchors.sourcePath}`, `nothing named \`${codeName}\` is written in the component`);
+        const eff = sigDefaults[codeName];
+        if (p.default !== undefined && eff !== undefined && String(p.default) !== String(eff))
+          report.fail("C3", `\`${p.name}\` default disagrees with the code`, `contract says \`${p.default}\`; the signature says \`${eff}\`.`);
+        continue;
+      }
+
+      const axis = readVariantMapAxis(stripLineComments(src), codeName);
+      if (axis.unreadable) {
+        report.fail("C1", `cannot read a variant map for \`${p.name}\``, `${axis.unreadable}. Declared idiom is \`variant-map\`. UNREADABLE is a failure, not a pass — fix the idiom or the contract, never let this go quiet.`);
+        continue;
+      }
+
+      /* C2 — enum parity, BOTH directions */
+      const missingInCode = p.type.enum.filter((v) => !axis.values.includes(v));
+      const missingInContract = axis.values.filter((v) => !p.type.enum.includes(v));
+      if (missingInCode.length)
+        report.fail("C2", `\`${p.name}\` promises values the code cannot render`, `contract has ${missingInCode.map((v) => `\`${v}\``).join(", ")}; \`${axis.objectName}\` does not. Anyone told this value exists will get whatever a missing key resolves to, and nothing will say so.`);
+      if (missingInContract.length)
+        report.fail("C2", `\`${p.name}\` has values in code the contract does not govern`, `\`${axis.objectName}\` has ${missingInContract.map((v) => `\`${v}\``).join(", ")}; the contract omits them. Ungoverned values are how a system grows a variant nobody approved.`);
+
+      /* C3 — variant-map has no separate defaults config; the signature default is the only one */
+      const eff = sigDefaults[codeName];
       if (p.default !== undefined && eff !== undefined && String(p.default) !== String(eff))
         report.fail("C3", `\`${p.name}\` default disagrees with the code`, `contract says \`${p.default}\`; the signature says \`${eff}\`.`);
     }
@@ -642,6 +733,10 @@ function main(argv) {
   }
 
   const failedCount = reports.filter((r) => r.failed).length;
+  // Draft-and-waiting-for-code is neither a pass nor drift — it never counts
+  // toward failedCount (INFO cannot fail a report), but a bare "PASS" would
+  // hide that 8 of 9 checks never ran. Tracked separately for the summary line.
+  const draftCount = reports.filter((r) => !r.failed && r.findings.some((f) => f.level === INFO)).length;
 
   if (asJson) {
     console.log(JSON.stringify({ repo, contracts: reports.map((r) => ({ contract: r.contractPath, findings: r.findings })) }, null, 2));
@@ -650,17 +745,20 @@ function main(argv) {
       const name = basename(r.contractPath);
       const fails = r.findings.filter((f) => f.level === FAIL);
       const warns = r.findings.filter((f) => f.level === WARN);
-      if (!fails.length && !warns.length) { console.log(`\x1b[32m  PASS\x1b[0m  ${name}`); continue; }
-      console.log(`${fails.length ? "\x1b[31m  FAIL\x1b[0m" : "\x1b[33m  WARN\x1b[0m"}  ${name}`);
-      for (const f of [...fails, ...warns]) {
-        const tag = f.level === FAIL ? "\x1b[31m✗\x1b[0m" : "\x1b[33m!\x1b[0m";
+      const infos = r.findings.filter((f) => f.level === INFO);
+      if (!fails.length && !warns.length && !infos.length) { console.log(`\x1b[32m  PASS\x1b[0m  ${name}`); continue; }
+      const label = fails.length ? "\x1b[31m  FAIL\x1b[0m" : warns.length ? "\x1b[33m  WARN\x1b[0m" : "\x1b[36m DRAFT\x1b[0m";
+      console.log(`${label}  ${name}`);
+      for (const f of [...fails, ...warns, ...infos]) {
+        const tag = f.level === FAIL ? "\x1b[31m✗\x1b[0m" : f.level === WARN ? "\x1b[33m!\x1b[0m" : "\x1b[36m·\x1b[0m";
         console.log(`        ${tag} [${f.code}] ${f.message}`);
         if (f.detail) for (const line of String(f.detail).split("\n")) console.log(`             ${line}`);
       }
       console.log("");
     }
     const total = reports.length;
-    console.log(`\n${total} contract${total === 1 ? "" : "s"} checked — ${total - failedCount} passing, ${failedCount} drifted.`);
+    const passing = total - failedCount - draftCount;
+    console.log(`\n${total} contract${total === 1 ? "" : "s"} checked — ${passing} passing, ${failedCount} drifted, ${draftCount} draft (awaiting code).`);
   }
 
   process.exit(failedCount > 0 ? 1 : 0);

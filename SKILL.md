@@ -1,6 +1,6 @@
 ---
 name: component-contract
-description: "Write, check and hand out component contracts — one small file per component that both the design decision and the shipped code answer to. Use for 'write a contract for this component', 'check our components against their contracts', 'why did the design system default not apply', 'give a partner something safe to prototype with', 'stop AI inventing variants that do not exist', 'our Figma and code have drifted'. Extracts a contract from real code, verifies it with a checker that exits non-zero on drift, and generates the one-page card a cross-functional partner reads. Follows Nathan Curtis's seven contract facets. Code-side only; it records Figma bindings but never checks them."
+description: "Write, check and hand out component contracts — one small file per component that both the design decision and the shipped code answer to. Use for 'write a contract for this component', 'help me build a contract for a component that doesn't exist yet', 'check our components against their contracts', 'why did the design system default not apply', 'give a partner something safe to prototype with', 'stop AI inventing variants that do not exist', 'our Figma and code have drifted'. Authors a contract 0-to-1 through a guided question sequence when no code exists yet (or resumes one that's half-built), extracts a contract from real code, verifies it with a checker that exits non-zero on drift, and generates the one-page card a cross-functional partner reads. Follows Nathan Curtis's seven contract facets. Code-side only; it records Figma bindings but never checks them."
 user-invocable: true
 allowed-tools: Read, Grep, Glob, Bash, Write, Edit
 ---
@@ -13,8 +13,12 @@ allowed-tools: Read, Grep, Glob, Bash, Write, Edit
 > step is the least settled part: it reads TypeScript by pattern, not with a
 > parser, so a component shape nobody has tested yet reports UNREADABLE rather
 > than a wrong answer. Supported shapes are listed in `references/extraction.md`,
-> and every one of them has a mutation proving what it does. This note changes
-> none of the modes below.
+> and every one of them has a mutation proving what it does. **Author mode is
+> new and has no live run yet** — the sequence and the evergreen defaults table
+> are a considered design, not something that has caught a real gap in the
+> field the way Extract's mutations have. Treat its output with the same
+> scrutiny as any other draft, and expect this note to change once it has.
+> This note changes none of the modes below.
 
 ## What this is
 
@@ -68,10 +72,43 @@ arbitrates.**
 
 | Mode | Trigger | Output |
 |---|---|---|
-| **Extract** *(default)* | "write a contract for Button" | `<name>.contract.json` + whatever drift the extraction itself surfaced |
+| **Author** | "help me build a contract for a new Badge" — no code exists yet, or a contract exists with fields still empty | `<name>.contract.json`, `status: "draft"`, forward-declared `bindings`, a `.recommendations.md` for anything unconfirmed |
+| **Extract** *(default when code exists)* | "write a contract for Button" | `<name>.contract.json` + whatever drift the extraction itself surfaced |
 | **Check** | "check the contracts", or CI | per-component pass/fail, non-zero exit |
 | **Card** | handing work to a partner or an agent | a one-page `PROMPT.md` — the options, the rules, and the refusal |
 | **Amend** | "we need a green button" | a `.proposal.json`, never a widened enum in place |
+
+**Which mode, without being asked.** Before doing anything, check: does code
+for this component exist, and does a contract for it already exist? No code
+and no contract → Author. Code and no contract → Extract. A contract exists
+with empty fields and its code doesn't exist yet → Author, resumed — walk the
+same sequence and silently skip whatever is already answered; never re-ask a
+question someone already answered. Both exist → run Check first, its verdict
+decides Card or Amend, not a guess.
+
+### Author
+
+Building a contract with a person, before the code exists to read one from.
+Same schema, same nine checks once code lands — the only difference is that
+`bindings.code.anchors` records where the code **will** live, not where it
+does. Ask one section at a time, in the fixed order in
+`references/authoring.md`: name/place → governing system (skip if the repo has
+only one) → what it's for → semantics → props (looped, one default each,
+temptations go to `gaps` not the enum) → states → anatomy/tokens → a11y → gaps
+(asked explicitly, never left implicitly empty) → bindings (forward-declared).
+
+**Never stall on "I don't know," and never guess silently.** When an answer
+isn't known yet, check the repo's own conventions first, fall back to the
+evergreen defaults table in `references/authoring.md`, and write down which
+one happened in `<name>.contract.recommendations.md` — a file `check.mjs`
+never reads, that exists purely so "the person decided this" and "the skill
+suggested this" don't collapse into the same JSON value.
+
+After the sequence: write the contract, run `check.mjs` anyway (only `C0` can
+resolve without code — report the other eight as **N/A**, not skipped),
+generate the card regardless, and name every `UNCONFIRMED` line from the
+recommendations file in the same message. Full sequence, the triage table, and
+the evergreen defaults: `references/authoring.md`.
 
 ### Extract
 

@@ -51,6 +51,50 @@ state. A harness that reports a verdict without measuring anything is the same
 defect this file exists to catch, one level up. **Strip ANSI before counting**,
 and never trust a mutation result that did not also run the opposite direction.
 
+## Run 3 — 2026-09-03, the draft/INFO status distinction
+
+Added after running Author mode (`references/authoring.md`) for real, against
+a private client codebase kept unnamed here: `check.mjs` was hard-FAILing C0
+on any missing source file, including a genuinely draft, code-not-written-yet
+contract — exactly the state Author mode is supposed to produce. Fixed by
+branching on `status: "draft"`. Both directions run, not just the one that
+motivated the fix.
+
+| # | Mutation | Expected | Result |
+|---|---|---|---|
+| M19 | A `status: "draft"` contract, no source at its declared path | `DRAFT`, exit `0`, one `INFO [C0]` line naming C1-C8 as N/A | **ok.** |
+| M20 | Same contract, `status` flipped to `"stable"`, source still missing | `FAIL`, exit `1`, `C0` red — a non-draft claiming real code is either true or it drifted | **ok — the branch is on the status, not on "no source found."** A promoted contract with a broken path still fails loud. |
+
+`card.mjs` was fixed alongside it: `--out` to a directory that doesn't exist
+yet crashed with an uncaught `ENOENT` instead of creating it. `mkdirSync(outDir,
+{ recursive: true })` added before the write; confirmed by running into a
+directory removed immediately beforehand.
+
+## Run 4 — 2026-09-03, the `variant-map` idiom
+
+The gap Run 3 flagged but didn't fix: the same private codebase's entire
+component set maps variant name to a Tailwind class string as a hand-written
+object literal, and `class-variance-authority` is imported nowhere in it.
+`idiom: "plain"` failed C2 (real variants exist); `idiom: "cva"` reported
+UNREADABLE (no `cva()` call exists). Added `readVariantMapAxis`, anchored on
+usage (`<object>[prop]`) rather than a specific function call — proved
+against real, unmodified production code, not a synthetic fixture, though
+that code isn't reproduced here (see `references/extraction.md`'s note on
+where this idiom came from).
+
+| # | Mutation | Expected | Result |
+|---|---|---|---|
+| M21 | Contract's enum omits a value the real object literal has | C2 red | **ok.** |
+| M22 | Contract's default disagrees with the real signature default | C3 red | **ok.** |
+| M23 | No-op: `description` text only | unchanged, PASS | **ok — determinism.** |
+| M24 | Same real file, idiom mislabeled `cva` | UNREADABLE, C1 red | **ok — a wrong idiom fails loud, never a silent pass.** |
+
+**Known asymmetry, not an oversight.** Unlike `cva`, this idiom does not
+check the reverse direction — a whole axis (e.g. a `sizes` object) that no
+contract prop governs. That would need a whole-file inventory of every
+object literal indexed anywhere in the source, which this reader does not
+attempt. Named in `check.mjs`'s own comment at the branch.
+
 ## Not yet mutation-tested
 
 Named here rather than left to be discovered. Per this repo's standard, a check
@@ -61,6 +105,7 @@ nobody has watched fail is a check nobody has tested — these are therefore
 |---|---|
 | **C8 warn path** — a rival scoped to an undeclared ancestor | The warning fires in the live run, but no mutation yet proves it stays a warning rather than escalating. |
 | **`inline` idiom** | Declared in the schema, not implemented. A contract naming it should fail; that has not been run. |
+| **`variant-map`'s reverse C2** | Whether an axis object with no governing contract prop gets flagged — it does not today, by design (see Run 4), but "by design" and "proven" are different claims and only the second one is a mutation. |
 
 ## How to re-run
 
