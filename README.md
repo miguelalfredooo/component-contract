@@ -2,6 +2,25 @@
 
 One small file per component that the design decision and the shipped code both answer to — and a checker whose verdict is its exit code.
 
+> ## This is a pinned older release
+>
+> **Schema `1.0.0` · checks `C0`–`C8` · code as of `98d7c81`, 2026-09-03.**
+>
+> This repo is a **pinned older release of a privately maintained set.** What is
+> here is complete and self-consistent — the contract format, the modes, the
+> checker, the schema and the worked example all agree with each other, and the
+> nine checks described below are the nine this checker implements.
+>
+> The private set has moved on and carries checks and schema fields that are not
+> here and are not described below. This copy is deliberately frozen rather than
+> abandoned: a public repo that quietly trails a private one is worse than one
+> that says so, because the drift is invisible to everyone reading it, and an
+> absent feature reads as a rejected idea rather than an unreleased one.
+>
+> **Use it as a stable snapshot.** Do not expect it to track upstream, and do not
+> read the absence of something here as evidence it does not exist. If you need
+> something that is missing, open an issue rather than assuming it was declined.
+
 A component exists twice: as the design someone decided, and as the code that ships. Keeping two copies in step is not a discipline problem you can train away; it is what happens when one thing is maintained in two places. And the failure is the invisible kind — a wrong default still renders a button, a hardcoded color still paints. Nothing looks broken, so nothing gets reported.
 
 ---
