@@ -310,3 +310,36 @@ The seven facets are Nathan Curtis's, from [*Component Contracts and Schemas*](h
 This skill is one code-side implementation of their ideas, not a reimplementation of their tooling.
 
 Authoring standard for this repo: [`../PRINCIPLES.md`](../PRINCIPLES.md).
+
+## Scheduled report
+
+`tools/sweep.mjs` checks **every** contract at once and writes the result to
+`reports/sweep-<date>.md`. The per-change checks answer "did this edit break
+anything"; this answers "what is the standing state of everything here", which
+nothing else asks.
+
+The report is written for somebody who has never seen the project: what was
+found comes before what it means, no term appears without a plain phrase first,
+and every line says what would fix it. A check that could **not** run is counted
+as open rather than as a pass.
+
+**Run it now**
+
+```bash
+node tools/sweep.mjs example --repo .        # over the bundled examples
+node tools/sweep.mjs <dir> --repo <repo>     # over your own contracts
+```
+
+Or from GitHub: **Actions → sweep → Run workflow**.
+
+**Change the frequency.** There is no schedule by default — a report that
+arrives on its own is one nobody asked for. To add one, uncomment `schedule:`
+in `.github/workflows/sweep.yml` and pick a line (UTC):
+
+```yaml
+- cron: "0 15 * * 5"    # every Friday at 15:00
+- cron: "0 9 1 * *"     # the 1st of each month at 09:00
+- cron: "0 9 * * 1,4"   # Mondays and Thursdays at 09:00
+```
+
+A sample report is committed in [`reports/`](reports/).
