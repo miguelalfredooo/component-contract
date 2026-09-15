@@ -51,14 +51,49 @@ const r = (() => {
   } catch (e) { return { code: e.status ?? 2, out: `${e.stdout ?? ""}${e.stderr ?? ""}` }; }
 })();
 
-/* One row per check number. A check nobody's contracts exercise is NOT EXAMINED
-   rather than passing — a number that never ran cannot be reported as clean. */
+/* The checker paints its output. Left in, an escape sequence reaches the regex
+   below and a table cell, and neither is looking for one. */
+const plain = (t) => String(t).replace(/\u001b\[[0-9;]*m/g, "");
+const text = plain(r.out);
+
+/* A DRAFT IS A CONTRACT WAITING ON CODE, so C1-C8 never ran against it. The
+   checker says so itself, in every draft line it prints: "C1-C8 cannot run
+   without it, so they are reported N/A here". Reporting those as passing is
+   the exact failure this file's own header warns about, and the first version
+   did it for every one. */
+const summary = text.match(/(\d+)\s+contracts?\s+checked\s+—\s+(\d+)\s+passing,\s+(\d+)\s+drifted,\s+(\d+)\s+draft/);
+const total = summary ? Number(summary[1]) : contracts.length;
+const drafts = summary ? Number(summary[4]) : 0;
+const allDraft = total > 0 && drafts === total;
+
+/* A FINDING IS MARKED, AND THE MARK IS WHAT COUNTS. The checker tags a failure
+   `✗`, a warning `!` and a note `·`. Counting the bare `[C0]` — which is what
+   the first version tried to do — would report a finding on every correct draft,
+   because a draft's note carries the same code as a real failure.
+
+   THE FIRST VERSION COUNTED NOTHING AT ALL. Its pattern was built as
+   `\\\\[${id}\\\\]` inside a template literal, which reaches the regex engine as
+   `\\[C0\\]`: a literal backslash, then a character class. It cannot match
+   `[C0]`, so every row came back clean and the committed sample said
+   "Everything was checked and everything passed" twelve lines above its own raw
+   output showing four findings. */
+const marked = (id) => (text.match(new RegExp(`[✗!]\\s*\\[${id}\\]`, "g")) || []).length;
+
 const rows = Object.entries(PLAIN).map(([id, [name, fix]]) => {
-  const hits = (r.out.match(new RegExp(`\\\\[${id}\\\\]`, "g")) || []).length;
+  const hits = marked(id);
   if (r.code === 2) return { id, name, state: "not-examined", found: "the checker could not start", fix };
   if (hits > 0) return { id, name, state: "partial", found: `${hits} place${hits === 1 ? "" : "s"}`, fix };
+  if (allDraft && id !== "C0")
+    return { id, name, state: "not-examined", found: "every contract is still waiting on its code", fix: "This cannot run until the code a contract describes exists. Write the component, or point the contract at the file that already holds it." };
   return { id, name, state: "verified", found: "nothing", fix: "—" };
 });
+
+/* GUARD THE GUARD. If the checker printed codes and the classifier above
+   matched none of them, the classifier is broken and every row is about to read
+   as clean. That is how the first version shipped. */
+const printedCodes = (text.match(/\[C\d\]/g) || []).length;
+const classified = Object.keys(PLAIN).reduce((n, id) => n + marked(id), 0);
+const classifierBlind = printedCodes > 0 && classified === 0 && !allDraft && r.code === 1;
 
 const count = (s) => rows.filter((x) => x.state === s).length;
 const open = count("partial") + count("not-examined");
@@ -69,6 +104,11 @@ L.push("the choices it offers, the values it starts with, and the parts it draws
 L.push("run compares every contract against the code it describes.", "");
 L.push(`Checked **${contracts.length}** contract${contracts.length === 1 ? "" : "s"}: ${contracts.map((c) => basename(c, ".contract.json")).join(", ")}.`, "");
 L.push("## What was found", "");
+if (classifierBlind) {
+  L.push("**This run could not read its own results.** The checker reported problems and");
+  L.push("the lines below could not work out which check each one belongs to, so every");
+  L.push("line reads as passing. Treat the whole table as unread until that is fixed.", "");
+}
 L.push("**Passed** means checked and nothing wrong. **Needs attention** means something");
 L.push("was found. **Could not check** means it did not run, and those count as open below.", "");
 L.push("| Check | Result | What was found | What would fix it |", "|---|---|---|---|");
