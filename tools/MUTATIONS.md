@@ -117,3 +117,48 @@ node tools/check.mjs example/ --repo ~/Code/alfredo-studio   # baseline: 2 fail
 Then mutate one thing, run again, and confirm the exit code moved. Restore.
 A mutation is never committed — it is restored by design, so its only evidence
 is this table.
+
+---
+
+## `tools/sweep.mjs`
+
+Driven 2026-09-15, after the first version shipped a report that said
+**"Everything was checked and everything passed"** twelve lines above its own
+raw output listing four findings.
+
+Two defects, one visible and one not.
+
+**The pattern matched nothing.** It was written as `` `\\\\[${id}\\\\]` `` inside a
+template literal, which reaches the regex engine as `\\[C0\\]`: a literal
+backslash followed by a character class. It cannot match `[C0]`, so every row
+came back with zero hits and every row read as passing. Confirmed by running the
+pattern on the string `hello [C0] there`, which returns `null`.
+
+**A draft was reported as a pass.** Every contract in `example/` names code that
+does not exist yet, so C1 through C8 never ran against any of them. The checker
+says so itself, in every line it prints: *"C1-C8 cannot run without it, so they
+are reported N/A here"*. The sweep called them verified anyway — the exact
+failure its own header warns about.
+
+| # | Mutation | Want | Result |
+|---|---|---|---|
+| **M1** | Point the sweep at contracts that describe code that really exists | rows go red | **ok** — `Every named value exists / 5 places`, `Nothing typed by hand / 1 place`. The version that shipped reported all nine clean on the same input |
+| **M2** | Put the original pattern back | the guard-the-guard fires | **ok** — *"This run could not read its own results"*, printed above a table that still says everything passed |
+| **M3** | No-op: append a comment | stays green | **ok** — `2 of 9 lines are open`, unchanged, exit 0 |
+
+### The guard-the-guard is the part that would have caught it
+
+A classifier that matches nothing produces a clean report, and a clean report is
+what everybody wants to see. So the sweep now counts the codes the checker
+PRINTED and the codes it CLASSIFIED, and says so when the checker reported
+problems and the classifier placed none of them. That banner is what M2 fires,
+and it fires while the table below it still reads as clean — which is the point.
+The reader is told the table is unread rather than left to notice.
+
+### A mark is what counts, not the code
+
+The checker tags a failure `✗`, a warning `!` and a note `·`. A draft's note
+carries the same `[C0]` as a real failure, so counting the bare code would
+report a finding on every correct draft. Matching the mark and the code together
+is what separates them.
+
