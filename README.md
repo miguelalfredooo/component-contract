@@ -20,6 +20,29 @@ One small file per component that the design decision and the shipped code both 
 > **Use it as a stable snapshot.** Do not expect it to track upstream, and do not
 > read the absence of something here as evidence it does not exist. If you need
 > something that is missing, open an issue rather than assuming it was declined.
+>
+> ### This pin is permanent, by decision
+>
+> **It was ruled on 2026-09-15 that this repository is never synced.** Until
+> then the pin was an open question and read as a lag — something that would be
+> reconciled once somebody found the time. It will not be, and saying so is
+> kinder than leaving it ambiguous: a reader waiting for this to catch up would
+> wait indefinitely.
+>
+> **The reasoning, briefly.** A sync is a *reconciliation* between two trees that
+> drift apart independently, and its cost is paid again every time, forever, by
+> whoever is holding it. A release is a *projection* of one tree at one moment,
+> and its cost is paid once, by a tool. The second is cheaper and far more
+> checkable; the only argument for the first was that it already existed.
+>
+> **The maintained set publishes as its own artifact.** If a newer public release
+> appears, it will be generated from the maintained set's own publishable
+> manifest — the list of files verified to carry no private repository content —
+> and it will arrive as a release in its own right, not as this repository
+> gradually becoming something else. So this snapshot stays exactly as it is, and
+> a future one would stand beside it rather than replace it in place.
+>
+> Nothing about that is scheduled, and no such release is promised here.
 
 A component exists twice: as the design someone decided, and as the code that ships. Keeping two copies in step is not a discipline problem you can train away; it is what happens when one thing is maintained in two places. And the failure is the invisible kind — a wrong default still renders a button, a hardcoded color still paints. Nothing looks broken, so nothing gets reported.
 
