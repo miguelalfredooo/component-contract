@@ -1,7 +1,7 @@
 # The seven facets — this skill's guiding principles
 
-Adopted from Nathan Curtis, "Component Contracts and Schemas" (Jul 2026,
-nathanacurtis.substack.com). Curtis is the system architect who coined
+Adopted from Nathan Curtis, "Component Contracts and Schemas" (Jul 2026).
+Curtis is the system architect who coined
 components-as-data; these seven facets are his standard for what makes a
 contract good, and this skill treats them as its principle set. Every check the
 checker runs, and every recommendation the skill makes, should trace to one.
