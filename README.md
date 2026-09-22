@@ -328,7 +328,7 @@ Contract the prototyping kit — five to eight components partners actually reac
 
 No license file — this is a private repo of personal skills, not a distribution.
 
-The seven facets are Nathan Curtis's, from [*Component Contracts and Schemas*](https://nathanacurtis.substack.com/p/component-contracts-and-schemas). The contract-in-the-middle model and the field names come from [Southleft's ds-contracts proof of concept](https://github.com/southleft/ds-contracts-poc), by way of [Christine Vallaure's write-up](https://christinevallaure.substack.com/p/design-system-contracts-the-component). The 69-versus-100 result is Southleft's.
+The seven facets are Nathan Curtis's, from *Component Contracts and Schemas* (Jul 2026). The contract-in-the-middle model and the field names come from [Southleft's ds-contracts proof of concept](https://github.com/southleft/ds-contracts-poc), by way of Christine Vallaure's write-up. The 69-versus-100 result is Southleft's.
 
 This skill is one code-side implementation of their ideas, not a reimplementation of their tooling.
 
